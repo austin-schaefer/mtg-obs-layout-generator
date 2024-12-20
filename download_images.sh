@@ -72,15 +72,20 @@ for input_art in ./images_art/*
 {
     # Create variable to set same filename as source image
     export_art_filename=$(printf "$input_art" | sed 's@./images_art/@@')
-    # printf "    $export_filename\n"
+    # Read width and height of source image
     grid_width=$(identify -ping -format '%w' $input_art)
     grid_height=$(identify -ping -format '%h' $input_art)
+    # Resize 'em
+    ## If it's too wide and too tall, shrink to fit in these dimensions
     if (( $grid_width > 1142 && $grid_height > 920)) ; then
         convert $input_art -geometry 1142x920 images_resized_art/$export_art_filename
+    ## If it's only too wide, shrink to fit by width
     elif (( $grid_width > 1142 )) ; then
         convert $input_art -geometry 1142 images_resized_art/$export_art_filename
+    ## If it's only too tall, shrink to fit by height
     elif (( $grid_height > 920 )) ; then
         convert $input_art -geometry x920 images_resized_art/$export_art_filename
+    ## If it's too narrow and too short, upscale to fit
     elif (( $grid_width < 1143 && $grid_height < 921 )) ; then\
         convert $input_art -geometry 1142x920 images_resized_art/$export_art_filename
     fi
@@ -100,7 +105,7 @@ for input_image in ./images_card/*
     # Create variable to set same filename as source image
     export_filename=$(printf "$input_image" | sed 's@./images_card/@@')
     # printf "    $export_filename\n"
-    magick composite -geometry +180+200 $input_image resources/marble-background.png images_export/$export_filename
+    magick composite -geometry +210+195 $input_image resources/marble-background.png images_export/$export_filename
     printf "    Overlayed image $input_image...\n"
 }
 printf "SUCCESS: All export images created\n\n"
@@ -113,8 +118,8 @@ for input_image in ./images_art/*
     # Read image height and do some math to align it properly
     image_width=$(identify -ping -format '%w' $input_image)
     image_height=$(identify -ping -format '%h' $input_image)
-    horizontal_offset=$(( 1120 + ( (1440 - $image_width) / 2 ) ))
-    vertical_offset=$(( (1440 - $image_height) / 2 ))
+    horizontal_offset=$(( 1000 + ( (1494 - $image_width) / 2 ) ))
+    vertical_offset=$(( 70 + ( (940 - $image_height) / 2 ) ))
     # Export final image
     magick composite -geometry +$horizontal_offset+$vertical_offset $input_image images_export/$export_filename images_export_w_art/$export_filename
     printf "    Added art to $input_image...\n"
