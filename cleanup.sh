@@ -14,6 +14,7 @@ rm -rf images_export
 rm -rf images_resized_art
 rm -rf images_export_w_art
 rm -rf images_export_w_art_and_frame
+rm -rf images_export_final
 rm -f temp_card_images.txt
 rm -f temp_art_images.txt
 
