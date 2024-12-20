@@ -138,18 +138,21 @@ for input_image in ./images_export_w_art/*
     magick composite -geometry +0+0 resources/host-frames-card-discussion.png $input_image images_export_w_art_and_frame/$export_filename
     printf "    Added host frame to $input_image...\n"
 }
-## Punch transparency hole
+## Punch transparency holes
 for input_image in ./images_export_w_art_and_frame/*
 {
     ## Create variable to set same filename as source image
     export_filename=$(printf "$input_image" | sed 's@./images_export_w_art_and_frame/@@')
     ## Add first transparency box
-    convert $input_image \( +clone -fill white -colorize 100 -fill black -draw "rectangle 1010,858 1489,1337" \) -alpha off -compose copy_opacity -composite images_export_final/$export_filename
+    convert $input_image \( +clone -fill white -colorize 100 -fill black -draw "rectangle 1010,858 1489,1337" -draw "rectangle 2008,858 2487,1337" \) -alpha off -compose copy_opacity -composite images_export_final/$export_filename
+    printf "    Added transparency box 1 to $input_image...\n"
 }
+printf "SUCCESS: Overlaid host images and transparencies\n"
 
 # Remove temporary export directory and rename
-# rm -rf images_export_w_art
-# mv images_export_w_art_and_frame images_export
+rm -rf images_export
+rm -rf images_export_w_art
+rm -rf images_export_w_art_and_frame
 printf "SUCCESS: All export images created\n\n"
 
 # Create grid image
@@ -172,6 +175,6 @@ fi
 ## Create composite grid image
 cp grid_resized.png ..
 cd ..
-magick composite -gravity center grid_resized.png resources/title_background.png images_export/grid.png
+magick composite -gravity center grid_resized.png resources/title_background.png grid.png
 rm grid_resized.png
 printf "SUCCESS: Composite grid created\n\n"
