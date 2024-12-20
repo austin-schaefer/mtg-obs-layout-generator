@@ -100,18 +100,18 @@ printf "SUCCESS: Resized all art images\n\n"
 
 # Overlay cards and art
 ## Loop through card images and overlay onto background
-printf "START: Creating export images\n"
+printf "START: Adding cards to backgrounds\n"
 for input_image in ./images_card/*
 {
     # Create variable to set same filename as source image
     export_filename=$(printf "$input_image" | sed 's@./images_card/@@')
     # Overlay card image onto background
     magick composite -geometry +210+195 $input_image resources/marble-background.png images_export/$export_filename
-    printf "    Overlayed image $input_image...\n"
+    printf "    Overlaid card to $input_image...\n"
 }
-printf "SUCCESS: All export images created\n\n"
+printf "SUCCESS: Done adding cards to backgrounds\n\n"
 ## Loop through card art images and overlay onto image
-printf "START: Adding art to export images\n"
+printf "START: Adding art to backgrounds\n"
 for input_image in ./images_art/*
 {
     # Create variable to set same filename as source image
@@ -123,9 +123,9 @@ for input_image in ./images_art/*
     vertical_offset=$(( 70 + ( (940 - $image_height) / 2 ) ))
     # Overlay card art and export image
     magick composite -geometry +$horizontal_offset+$vertical_offset $input_image images_export/$export_filename images_export_w_art/$export_filename
-    printf "    Added art to $input_image...\n"
+    printf "    Overlaid art to $input_image...\n"
 }
-printf "SUCCESS: All art export images created\n\n"
+printf "SUCCESS: Done adding art to backgrounds\n\n"
 
 # Overlay frames on images and punch transparency hole
 ## Overlay host image
@@ -136,7 +136,7 @@ for input_image in ./images_export_w_art/*
     export_filename=$(printf "$input_image" | sed 's@./images_export_w_art/@@')
     # Overlay host images
     magick composite -geometry +0+0 resources/host-frames-card-discussion.png $input_image images_export_w_art_and_frame/$export_filename
-    printf "    Added host frame to $input_image...\n"
+    printf "    Overlaid host frame to $input_image...\n"
 }
 ## Punch transparency holes
 for input_image in ./images_export_w_art_and_frame/*
@@ -145,15 +145,15 @@ for input_image in ./images_export_w_art_and_frame/*
     export_filename=$(printf "$input_image" | sed 's@./images_export_w_art_and_frame/@@')
     ## Add first transparency box
     convert $input_image \( +clone -fill white -colorize 100 -fill black -draw "rectangle 1010,858 1489,1337" -draw "rectangle 2008,858 2487,1337" \) -alpha off -compose copy_opacity -composite images_export_final/$export_filename
-    printf "    Added transparency box 1 to $input_image...\n"
+    printf "    Added transparency boxes to $input_image...\n"
 }
-printf "SUCCESS: Overlaid host images and transparencies\n"
+printf "SUCCESS: Done overlaying host images and transparencies\n\n"
 
 # Remove temporary export directory and rename
 rm -rf images_export
 rm -rf images_export_w_art
 rm -rf images_export_w_art_and_frame
-printf "SUCCESS: All export images created\n\n"
+printf "SUCCESS: Finished cleaning up\n\n"
 
 # Create grid image
 ## Create grid image
@@ -177,4 +177,4 @@ cp grid_resized.png ..
 cd ..
 magick composite -gravity center grid_resized.png resources/title_background.png grid.png
 rm grid_resized.png
-printf "SUCCESS: Composite grid created\n\n"
+printf "SUCCESS: Final grid exported\n\n"
