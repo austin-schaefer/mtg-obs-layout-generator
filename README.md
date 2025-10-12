@@ -2,9 +2,9 @@
 
 An automated tool for creating custom OBS layouts and card grids for Magic: The Gathering streaming and content creation.
 
-## Quick Start
+## Quick start
 
-### Option 1: Build from Scryfall Search Query
+### Option 1: Build from Scryfall search query
 
 1. **Generate card layouts:**
    ```bash
@@ -19,7 +19,7 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
    - Individual card layouts: `images_export_final/`
    - Card grid: `grid.png`
 
-### Option 2: Build a Random Booster Pack
+### Option 2: Build a random booster pack
 
 1. **Generate booster pack layouts:**
    ```bash
@@ -44,13 +44,13 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 # Python version (recommended)
 ./cleanup.py
 
-## What This Tool Creates
+## What this tool creates
 
 - **Individual Card Layouts**: Each card composited with artwork on a marble background, ready for OBS overlay
 - **Card Grids**: Montage arrangements of multiple cards for deck discussions or set overviews
 - **Streaming-Ready Graphics**: Pre-positioned transparency holes for webcam/chat overlays
 
-## Search Query Examples
+## Search query examples
 
 - `set:neo` - All cards from Kamigawa: Neon Dynasty
 - `type:creature cmc:3` - All 3-mana creatures
@@ -60,7 +60,7 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 
 See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queries.
 
-## Grid Arrangements
+## Grid arrangements
 
 - `8x0` - 8 cards wide, auto height
 - `9x0` - 9 cards wide, auto height
@@ -74,7 +74,7 @@ See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queri
 - wget (`brew install wget` on macOS)
 - Bash/Zsh shell (only required for bash version)
 
-## Booster Pack Builder
+## Booster pack builder
 
 You can also use it standalone to see booster composition:
 
@@ -90,7 +90,7 @@ Enter a set code and it will build a randomized booster pack with the correct st
 - Special cards (Time Spiral timeshifted sheet)
 - Proper card ordering (commons first, then uncommons, rares, mythics)
 
-## File Structure
+## File structure
 
 ```
 obs-layouts/
