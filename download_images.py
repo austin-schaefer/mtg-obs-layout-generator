@@ -157,13 +157,15 @@ def overlay_art_on_backgrounds(art_dir: Path, base_dir: Path, output_dir: Path):
 
 def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Path, frame_path: Path):
     """Add host frames and transparency holes."""
-    print(f"{Color.BLUE}Adding frames and transparency...{Color.RESET}")
-
     # Add frames
+    print(f"{Color.BLUE}Adding frames...{Color.RESET}")
     for image in sorted(input_dir.glob('*.png')):
         composite_image(frame_path, image, frame_dir / image.name, '+0+0')
+        print(f"{Color.DIM}  {image.name}{Color.RESET}")
+    print(f"{Color.GREEN}✓ Added all frames{Color.RESET}\n")
 
     # Punch transparency holes
+    print(f"{Color.BLUE}Adding transparency...{Color.RESET}")
     for image in sorted(frame_dir.glob('*.png')):
         run([
             'convert', str(image),
@@ -175,8 +177,7 @@ def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Pat
             str(final_dir / image.name)
         ])
         print(f"{Color.DIM}  {image.name}{Color.RESET}")
-
-    print(f"{Color.GREEN}✓ Added frames and transparency{Color.RESET}\n")
+    print(f"{Color.GREEN}✓ Added all transparency{Color.RESET}\n")
 
 
 def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, output: Path):
