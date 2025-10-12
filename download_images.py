@@ -227,9 +227,59 @@ def read_booster_urls() -> tuple[list[str], list[str]]:
     return card_urls, art_urls
 
 
+def check_existing_files() -> bool:
+    """
+    Check for existing export files and directories.
+    Returns True if user wants to continue, False if they want to exit.
+    """
+    base = Path.cwd()
+
+    # Check for directories and files
+    paths_to_check = [
+        base / 'images_card',
+        base / 'images_art',
+        base / 'images_export',
+        base / 'images_resized_art',
+        base / 'images_export_w_art',
+        base / 'images_export_w_art_and_frame',
+        base / 'images_export_final',
+        base / 'grid.png',
+        base / 'grid_temp.png',
+        base / 'booster_card_urls.txt',
+        base / 'booster_art_urls.txt',
+    ]
+
+    existing = [p for p in paths_to_check if p.exists()]
+
+    if not existing:
+        return True
+
+    # Found existing files - warn the user
+    print(f"{Color.YELLOW}Warning: Found existing export files/directories:{Color.RESET}")
+    for path in existing:
+        if path.is_dir():
+            print(f"{Color.DIM}  {path.name}/{Color.RESET}")
+        else:
+            print(f"{Color.DIM}  {path.name}{Color.RESET}")
+
+    print()
+    response = input(f"{Color.BOLD}{Color.MAGENTA}> Continue anyway? (y/n): {Color.RESET}").strip().lower()
+
+    if response == 'y':
+        print()
+        return True
+    else:
+        print(f"\n{Color.YELLOW}Exiting. Run './cleanup.py' to remove existing files.{Color.RESET}")
+        return False
+
+
 def main():
     """Main entry point."""
     try:
+        # Check for existing files before starting
+        if not check_existing_files():
+            sys.exit(0)
+
         # Get user input
         input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: {Color.RESET}").strip().upper()
 
