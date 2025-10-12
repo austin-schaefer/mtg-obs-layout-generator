@@ -44,10 +44,6 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 # Python version (recommended)
 ./cleanup.py
 
-# Or bash version
-./cleanup.sh
-```
-
 ## What This Tool Creates
 
 - **Individual Card Layouts**: Each card composited with artwork on a marble background, ready for OBS overlay
@@ -80,8 +76,6 @@ See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queri
 
 ## Booster Pack Builder
 
-The booster builder is now integrated into `download_images.py` - just choose **BOOST** mode when prompted!
-
 You can also use it standalone to see booster composition:
 
 ```bash
@@ -89,6 +83,7 @@ You can also use it standalone to see booster composition:
 ```
 
 Enter a set code and it will build a randomized booster pack with the correct structure for that set, handling:
+
 - Historical sets with unique structures (Arabian Nights, The Dark, etc.)
 - Pre-mythic era sets (11/3/1 structure)
 - Modern sets with mythic rarity (1/8 chance)
@@ -99,34 +94,20 @@ Enter a set code and it will build a randomized booster pack with the correct st
 
 ```
 obs-layouts/
-├── download_images.py        # Main workflow script (Python)
-├── download_images.sh        # Main workflow script (Bash)
-├── booster_builder.py        # Booster composition tool (Python)
-├── booster-builder-bash.sh   # Booster composition tool (Bash)
-├── cleanup.sh                # Cleanup utility
-├── scry                      # Scryfall API client
-├── resources/                # Background assets
-└── [generated dirs]          # Created during processing
+├── booster_builder.py          # Booster composition tool
+├── cleanup.py                  # Cleanup utility
+├── download_images.py          # Main workflow script
+├── scry                        # Scryfall API client
+├── resources/                  # Background assets
+├── [generated dirs]            # Created during processing
+└─┬ legacy_bash_scripts/        # Bash scripts that the Python ones are based on
+  ├── booster-builder-bash.sh   # Booster composition tool (Bash)
+  ├── cleanup.sh                # Cleanup utility (Bash)
+  └── download_images.sh        # Main workflow script (Bash)   
 ```
 
-## Implementation Notes
-
-**Python vs Bash**: The Python version (`download_images.py`) is the recommended implementation. It offers:
-- Better error handling and logging
-- Cross-platform compatibility
-- More maintainable code structure
-- Object-oriented design for easier extension
-
-The bash version (`download_images.sh`) is preserved for reference and compatibility.
+The scripts were originally human-written in Bash; the Python versions are Claude Code because Bash was getting brittle A.F.
 
 ## Troubleshooting
 
 **"Command not found" errors**: Install missing dependencies (ImageMagick, wget, Python 3)
-
-**Rate limiting**: The tool includes automatic delays to respect Scryfall's API limits
-
-**Large file sizes**: Generated images are high-resolution for streaming quality
-
----
-
-*This tool uses the [Scryfall API](https://scryfall.com/docs/api) to fetch Magic: The Gathering card data.*
