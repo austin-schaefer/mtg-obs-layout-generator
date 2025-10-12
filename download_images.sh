@@ -9,7 +9,7 @@ set -o nounset
 set -o pipefail
 
 # Get necessary user input
-printf "> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder."
+printf "> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: "
 read input_type
 if [ "$input_type" = "SCRY" ]; then
     printf "> Enter Scryfall search query: "
