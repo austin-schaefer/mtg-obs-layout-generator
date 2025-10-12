@@ -282,9 +282,10 @@ def main():
             sys.exit(0)
 
         # Get user input
-        input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: {Color.RESET}").strip().upper()
+        input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRY/SCRYFALL for Scryfall search, or BOOST/BOOSTER for booster pack: {Color.RESET}").strip().upper()
 
-        if input_type == "BOOST":
+        # Normalize input type
+        if input_type in ("BOOST", "BOOSTER"):
             # Get set code from user
             set_code = input(f"{Color.BOLD}{Color.MAGENTA}> Enter set code: {Color.RESET}").strip().upper()
             print()
@@ -308,16 +309,18 @@ def main():
             grid_arrangement = layout
             card_urls, art_urls = read_booster_urls()
             query = None  # Not used in BOOST mode
+            input_type = "BOOST"  # Normalize for later checks
 
-        elif input_type == "SCRY":
+        elif input_type in ("SCRY", "SCRYFALL"):
             query = input(f"{Color.BOLD}{Color.MAGENTA}> Enter Scryfall search query: {Color.RESET}").strip()
             grid_arrangement = input(f"{Color.BOLD}{Color.MAGENTA}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {Color.RESET}").strip()
             print()
             card_urls = None  # Will be fetched from Scryfall
             art_urls = None
+            input_type = "SCRY"  # Normalize for later checks
 
         else:
-            print(f"ERROR: Unknown input type '{input_type}'. Use SCRY or BOOST.")
+            print(f"{Color.RED}ERROR: Unknown input type '{input_type}'. Use SCRY/SCRYFALL or BOOST/BOOSTER.{Color.RESET}")
             sys.exit(1)
 
         # Setup paths
