@@ -95,9 +95,9 @@ class BoosterBuilder:
             uncommons = 0
             rares = 0
 
-            # Two slots with 34% chance of rare, otherwise uncommon
+            # Two slots with 1/3 chance of rare, otherwise uncommon
             for _ in range(2):
-                if random.random() < 0.34:
+                if random.randint(0, 2) == 0:
                     rares += 1
                 else:
                     uncommons += 1
