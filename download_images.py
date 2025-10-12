@@ -318,7 +318,7 @@ def main():
                 if f.exists():
                     f.unlink()
 
-        print("🎉 All done!")
+        print("Finished! Check /images_export_final/ for output.")
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
