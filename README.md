@@ -111,3 +111,11 @@ The scripts were originally human-written in Bash; the Python versions are Claud
 ## Troubleshooting
 
 **"Command not found" errors**: Install missing dependencies (ImageMagick, wget, Python 3)
+
+## Licensing
+
+This repository's code is MIT-licensed (copyright 2025 Austin Schaefer). See [LICENSE](LICENSE) for full text.
+
+**Exception**: All images and assets in the `/resources/` directory are all rights reserved and may not be copied, modified, or distributed without permission.
+
+This repository bundles the [scrycall](https://github.com/0xdanelia/scrycall) utility as a binary for convenience. Scrycall is MIT-licensed. 
