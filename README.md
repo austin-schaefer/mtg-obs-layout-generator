@@ -4,16 +4,14 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 
 ## Quick Start
 
+### Option 1: Build from Scryfall Search Query
+
 1. **Generate card layouts:**
    ```bash
-   # Using Python (recommended)
    ./download_images.py
-
-   # Or using bash
-   ./download_images.sh
    ```
 
-2. **Enter your search query** (e.g., `set:neo`, `type:creature`, `cmc:3`)
+2. **Choose SCRY mode** and enter your search query (e.g., `set:neo`, `type:creature`, `cmc:3`)
 
 3. **Choose grid arrangement** (e.g., `8x0`, `9x0`, `10x0`)
 
@@ -21,10 +19,30 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
    - Individual card layouts: `images_export_final/`
    - Card grid: `grid.png`
 
-5. **Clean up when done:**
+### Option 2: Build a Random Booster Pack
+
+1. **Generate booster pack layouts:**
    ```bash
-   ./cleanup.sh
+   ./download_images.py
    ```
+
+2. **Choose BOOST mode** and enter a set code (e.g., `NEO`, `ONS`, `TSP`)
+
+3. The script will:
+   - Automatically build a randomized booster pack for that set
+   - Handle set-specific booster structures (including mythics, timeshifted cards, etc.)
+   - Generate layouts in booster order (commons → uncommons → rares → mythics)
+   - Automatically determine the correct grid arrangement
+
+4. **Find your files:**
+   - Individual card layouts: `images_export_final/`
+   - Booster pack grid: `grid.png`
+
+### Cleanup
+
+```bash
+./cleanup.sh
+```
 
 ## What This Tool Creates
 
@@ -58,21 +76,20 @@ See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queri
 
 ## Booster Pack Builder
 
-Determine accurate booster pack composition for any Magic set:
+The booster builder is now integrated into `download_images.py` - just choose **BOOST** mode when prompted!
+
+You can also use it standalone to see booster composition:
 
 ```bash
-# Python version (recommended)
 ./booster_builder.py
-
-# Or bash version
-./booster-builder-bash.sh
 ```
 
-Enter a set code (e.g., `NEO`, `ARN`, `TSP`) and the tool will output the correct number of commons, uncommons, rares, and mythics based on that set's booster structure. Handles special cases including:
+Enter a set code and it will build a randomized booster pack with the correct structure for that set, handling:
 - Historical sets with unique structures (Arabian Nights, The Dark, etc.)
-- Pre-mythic era sets
-- Modern sets with mythic rarity
-- Time Spiral's timeshifted cards
+- Pre-mythic era sets (11/3/1 structure)
+- Modern sets with mythic rarity (1/8 chance)
+- Special cards (Time Spiral timeshifted sheet)
+- Proper card ordering (commons first, then uncommons, rares, mythics)
 
 ## File Structure
 

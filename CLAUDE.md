@@ -47,9 +47,17 @@ The `resources/` directory contains:
 # Or bash version
 ./download_images.sh
 ```
-Both scripts will prompt for:
-- Scryfall search query (e.g., "set:neo", "type:creature")
-- Grid arrangement (e.g., "8x0", "9x0")
+
+The script supports two modes:
+
+**SCRY Mode** - Search Scryfall for cards:
+- Enter a Scryfall search query (e.g., "set:neo", "type:creature")
+- Specify grid arrangement (e.g., "8x0", "9x0")
+
+**BOOST Mode** - Build a random booster pack:
+- Enter a set code (e.g., "NEO", "ONS", "TSP")
+- Automatically builds a randomized booster with correct structure
+- Grid arrangement is determined automatically based on booster size
 
 ### Querying Card Data
 ```bash
@@ -62,16 +70,20 @@ python3 scry "search_query" --print="%{image_uris.art_crop}"
 ./cleanup.sh
 ```
 
-### Determining Booster Pack Composition
-```bash
-# Python version (recommended)
-./booster_builder.py
+### Building Booster Packs
 
-# Or bash version
-./booster-builder-bash.sh
+Booster building is integrated into `download_images.py` via BOOST mode. You can also use it standalone:
+
+```bash
+./booster_builder.py
 ```
-This tool calculates the correct booster pack composition for any Magic set code, handling:
-- Special historical sets (Arabian Nights, The Dark, Fallen Empires, etc.)
+
+This builds a randomized booster pack for any Magic set code:
+- Queries Scryfall for cards of each rarity in the set
+- Selects random cards without duplicates
+- Orders cards: commons → uncommons → rares → mythics → timeshifted
+- Outputs URLs to files for `download_images.py` to consume
+- Handles special historical sets (Arabian Nights, The Dark, Fallen Empires, etc.)
 - Pre-mythic era standard boosters
 - Modern boosters with mythic rarity randomization (1/8 chance)
 - Unique set structures (Time Spiral with timeshifted cards)

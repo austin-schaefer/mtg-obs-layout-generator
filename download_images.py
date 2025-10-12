@@ -200,19 +200,58 @@ def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, o
     print("✓ Final grid created\n")
 
 
+def read_booster_urls() -> tuple[list[str], list[str]]:
+    """Read booster URLs from files created by booster_builder.py."""
+    base = Path.cwd()
+    card_urls_file = base / 'booster_card_urls.txt'
+    art_urls_file = base / 'booster_art_urls.txt'
+
+    with open(card_urls_file) as f:
+        card_urls = [line.strip() for line in f if line.strip()]
+
+    with open(art_urls_file) as f:
+        art_urls = [line.strip() for line in f if line.strip()]
+
+    return card_urls, art_urls
+
+
 def main():
     """Main entry point."""
     try:
         # Get user input
-        input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip()
+        input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip().upper()
 
-        if input_type != "SCRY":
-            print("ERROR: Only SCRY mode is currently supported")
+        if input_type == "BOOST":
+            # Call booster_builder.py to build the booster
+            print("\nBuilding booster pack...\n")
+            result = run(['python3', 'booster_builder.py'], capture=True)
+
+            # Parse output to get layout
+            layout = None
+            for line in result.stdout.splitlines():
+                if line.startswith("LAYOUT:"):
+                    layout = line.split(":", 1)[1]
+                else:
+                    print(line)  # Echo booster_builder output
+
+            if not layout:
+                print("ERROR: Could not determine grid layout from booster_builder.py")
+                sys.exit(1)
+
+            grid_arrangement = layout
+            card_urls, art_urls = read_booster_urls()
+            query = None  # Not used in BOOST mode
+
+        elif input_type == "SCRY":
+            query = input("> Enter Scryfall search query: ").strip()
+            grid_arrangement = input("> Enter grid arrangement (e.g. 8x0, 9x0, etc.): ").strip()
+            print()
+            card_urls = None  # Will be fetched from Scryfall
+            art_urls = None
+
+        else:
+            print(f"ERROR: Unknown input type '{input_type}'. Use SCRY or BOOST.")
             sys.exit(1)
-
-        query = input("> Enter Scryfall search query: ").strip()
-        grid_arrangement = input("> Enter grid arrangement (e.g. 8x0, 9x0, etc.): ").strip()
-        print()
 
         # Setup paths
         base = Path.cwd()
@@ -232,12 +271,17 @@ def main():
             d.mkdir(exist_ok=True)
 
         # Download images
-        card_urls = get_scryfall_urls(query, 'png')
-        print(f"✓ Found {len(card_urls)} cards\n")
-        download_images(card_urls, dirs['card'], 'card')
+        if card_urls is None:
+            # SCRY mode: fetch from Scryfall
+            card_urls = get_scryfall_urls(query, 'png')
+            print(f"✓ Found {len(card_urls)} cards\n")
 
-        art_urls = get_scryfall_urls(query, 'art_crop')
-        print(f"✓ Found {len(art_urls)} artworks\n")
+        if art_urls is None:
+            # SCRY mode: fetch from Scryfall
+            art_urls = get_scryfall_urls(query, 'art_crop')
+            print(f"✓ Found {len(art_urls)} artworks\n")
+
+        download_images(card_urls, dirs['card'], 'card')
         download_images(art_urls, dirs['art'], 'art')
 
         # Process images
@@ -258,6 +302,12 @@ def main():
 
         # Create final grid
         create_grid(dirs['card'], grid_arrangement, resources / 'title_background.png', base / 'grid.png')
+
+        # Cleanup booster URL files if they exist
+        if input_type == "BOOST":
+            for f in [base / 'booster_card_urls.txt', base / 'booster_art_urls.txt']:
+                if f.exists():
+                    f.unlink()
 
         print("🎉 All done!")
 

@@ -2,13 +2,14 @@
 """
 Booster Builder
 
-Determines Magic: The Gathering booster pack composition based on set code.
+Determines and builds Magic: The Gathering booster pack composition based on set code.
 Handles historical set variations and modern booster structures.
 """
 
 import sys
 import random
-from typing import Dict, Tuple
+import subprocess
+from pathlib import Path
 from dataclasses import dataclass
 
 
@@ -22,10 +23,6 @@ class BoosterConfig:
     tsb_cards: int
     layout: str
 
-    def total_cards(self) -> int:
-        """Calculate total number of cards in the booster."""
-        return self.commons + self.uncommons + self.rares + self.mythics + self.tsb_cards
-
     def __str__(self) -> str:
         """Return a human-readable description of the booster."""
         parts = [
@@ -37,6 +34,13 @@ class BoosterConfig:
         if self.tsb_cards > 0:
             parts.append(f"{self.tsb_cards} timeshifted")
         return ", ".join(parts)
+
+
+@dataclass
+class Card:
+    """A card with its image URLs."""
+    card_url: str
+    art_url: str
 
 
 class BoosterBuilder:
@@ -59,25 +63,76 @@ class BoosterBuilder:
         'UNH'
     }
 
-    def __init__(self):
-        pass
+    def __init__(self, set_code: str):
+        self.set_code = set_code
 
-    def get_set_code(self) -> str:
-        """Prompt user for set code and normalize to uppercase."""
-        set_code = input("Enter a set code: ").strip().upper()
-        print()
-        return set_code
+    def run_scry(self, query: str, print_format: str) -> list[str]:
+        """Query Scryfall using the scry tool."""
+        result = subprocess.run(
+            ['python3', 'scry', query, f'--print={print_format}'],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-    def build_booster_config(self, set_code: str) -> BoosterConfig:
+    def get_cards_by_rarity(self, rarity: str, count: int) -> list[Card]:
+        """Get N random cards of a specific rarity from the set."""
+        if count == 0:
+            return []
+
+        # Query for cards of this rarity in this set
+        query = f"e:{self.set_code.lower()} t:{rarity}"
+
+        # Get both card and art URLs
+        card_urls = self.run_scry(query, '%{image_uris.png}')
+        art_urls = self.run_scry(query, '%{image_uris.art_crop}')
+
+        if len(card_urls) != len(art_urls):
+            raise ValueError(f"Mismatch between card and art URL counts for {rarity}")
+
+        # Create Card objects
+        all_cards = [Card(card, art) for card, art in zip(card_urls, art_urls)]
+
+        if len(all_cards) < count:
+            raise ValueError(f"Not enough {rarity}s in set {self.set_code}: need {count}, found {len(all_cards)}")
+
+        # Select random cards without duplicates
+        selected = random.sample(all_cards, count)
+
+        # Randomize order within rarity
+        random.shuffle(selected)
+
+        return selected
+
+    def get_tsb_cards(self, count: int) -> list[Card]:
+        """Get random timeshifted cards."""
+        if count == 0:
+            return []
+
+        query = "e:tsb"
+        card_urls = self.run_scry(query, '%{image_uris.png}')
+        art_urls = self.run_scry(query, '%{image_uris.art_crop}')
+
+        all_cards = [Card(card, art) for card, art in zip(card_urls, art_urls)]
+
+        if len(all_cards) < count:
+            raise ValueError(f"Not enough TSB cards: need {count}, found {len(all_cards)}")
+
+        selected = random.sample(all_cards, count)
+        random.shuffle(selected)
+
+        return selected
+
+    def build_booster_config(self) -> BoosterConfig:
         """
         Determine booster configuration based on set code.
-
-        Args:
-            set_code: Magic set code (e.g., 'NEO', 'ARN', 'TSP')
 
         Returns:
             BoosterConfig with card counts and layout
         """
+        set_code = self.set_code
+
         # Arabian Nights, Antiquities — 8 cards
         if set_code in self.ARABIAN_ANTIQUITIES:
             return BoosterConfig(
@@ -185,25 +240,75 @@ class BoosterBuilder:
                 layout="7x0"
             )
 
-    def print_booster_info(self, set_code: str, config: BoosterConfig):
-        """Print booster configuration information."""
-        print(f"{set_code} booster contents: {config}")
-        print(f"Booster layout: {config.layout}")
+    def build_booster(self) -> tuple[list[Card], str]:
+        """
+        Build a complete booster pack with actual cards.
 
-    def run(self):
-        """Execute the booster builder workflow."""
-        set_code = self.get_set_code()
-        config = self.build_booster_config(set_code)
-        self.print_booster_info(set_code, config)
-        return config
+        Returns:
+            Tuple of (list of cards in order, grid layout)
+        """
+        config = self.build_booster_config()
+
+        print(f"{self.set_code} booster contents: {config}")
+        print(f"Booster layout: {config.layout}\n")
+
+        # Build booster in order: commons, uncommons, rares, mythics, TSB
+        booster = []
+
+        print("Building booster...")
+        if config.commons > 0:
+            print(f"  Selecting {config.commons} commons...")
+            booster.extend(self.get_cards_by_rarity('common', config.commons))
+
+        if config.uncommons > 0:
+            print(f"  Selecting {config.uncommons} uncommons...")
+            booster.extend(self.get_cards_by_rarity('uncommon', config.uncommons))
+
+        if config.rares > 0:
+            print(f"  Selecting {config.rares} rares...")
+            booster.extend(self.get_cards_by_rarity('rare', config.rares))
+
+        if config.mythics > 0:
+            print(f"  Selecting {config.mythics} mythics...")
+            booster.extend(self.get_cards_by_rarity('mythic', config.mythics))
+
+        if config.tsb_cards > 0:
+            print(f"  Selecting {config.tsb_cards} timeshifted cards...")
+            booster.extend(self.get_tsb_cards(config.tsb_cards))
+
+        print(f"✓ Built booster with {len(booster)} cards\n")
+
+        return booster, config.layout
+
+    def save_booster(self, booster: list[Card], output_dir: Path = Path.cwd()):
+        """Save booster URLs to files for download_images.py to use."""
+        card_urls_file = output_dir / 'booster_card_urls.txt'
+        art_urls_file = output_dir / 'booster_art_urls.txt'
+
+        with open(card_urls_file, 'w') as f:
+            for card in booster:
+                f.write(f"{card.card_url}\n")
+
+        with open(art_urls_file, 'w') as f:
+            for card in booster:
+                f.write(f"{card.art_url}\n")
+
+        print(f"✓ Saved booster to {card_urls_file} and {art_urls_file}\n")
 
 
 def main():
     """Main entry point."""
-    builder = BoosterBuilder()
-
     try:
-        builder.run()
+        set_code = input("Enter a set code: ").strip().upper()
+        print()
+
+        builder = BoosterBuilder(set_code)
+        booster, layout = builder.build_booster()
+        builder.save_booster(booster)
+
+        # Return the layout for download_images.py to use
+        print(f"LAYOUT:{layout}")
+
     except KeyboardInterrupt:
         print("\n\nProcess interrupted by user")
         sys.exit(1)
