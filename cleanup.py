@@ -11,8 +11,8 @@ from pathlib import Path
 
 # ANSI color codes
 class Color:
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
+    GREEN = '\033[32m'     # Standard green instead of bright green
+    YELLOW = '\033[33m'    # Standard yellow instead of bright yellow
     DIM = '\033[2m'
     BOLD = '\033[1m'
     RESET = '\033[0m'
