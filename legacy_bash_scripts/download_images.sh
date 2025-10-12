@@ -8,12 +8,16 @@ set -o nounset
 ## Treat any error in pipe command as failing whole command
 set -o pipefail
 
-# Prompt for user input
-printf "> Enter Scryfall search query: "
-read scryfall_search
-printf "> Enter grid arrangement (e.g. 8x0, 9x0, etc.): "
-read grid_arrangement
-printf "\n"
+# Get necessary user input
+printf "> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: "
+read input_type
+if [ "$input_type" = "SCRY" ]; then
+    printf "> Enter Scryfall search query: "
+    read scryfall_search
+    printf "> Enter grid arrangement (e.g. 8x0, 9x0, etc.): "
+    read grid_arrangement
+    printf "\n"
+fi
 
 # Create export directories and temp directories
 mkdir images_card
