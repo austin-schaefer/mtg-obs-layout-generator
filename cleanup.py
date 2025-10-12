@@ -9,6 +9,16 @@ import shutil
 from pathlib import Path
 
 
+# ANSI color codes
+class Color:
+    GREEN = '\033[32m'     # Standard green
+    YELLOW = '\033[33m'    # Standard yellow
+    MAGENTA = '\033[35m'   # Standard magenta
+    DIM = '\033[2m'
+    BOLD = '\033[1m'
+    RESET = '\033[0m'
+
+
 def main():
     """Remove all generated files and directories."""
     base = Path.cwd()
@@ -39,16 +49,16 @@ def main():
         dir_path = base / dir_name
         if dir_path.exists():
             shutil.rmtree(dir_path)
-            print(f"Removed {dir_name}/")
+            print(f"{Color.DIM}Removed {dir_name}/{Color.RESET}")
 
     # Remove files
     for file_name in files_to_remove:
         file_path = base / file_name
         if file_path.exists():
             file_path.unlink()
-            print(f"Removed {file_name}")
+            print(f"{Color.DIM}Removed {file_name}{Color.RESET}")
 
-    print("\n✓ Cleanup complete\n")
+    print(f"\n{Color.BOLD}{Color.GREEN}✓ Cleanup complete{Color.RESET}\n")
 
 
 if __name__ == '__main__':

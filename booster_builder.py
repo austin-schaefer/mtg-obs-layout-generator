@@ -13,6 +13,18 @@ from pathlib import Path
 from dataclasses import dataclass
 
 
+# ANSI color codes
+class Color:
+    BLUE = '\033[34m'      # Standard blue
+    GREEN = '\033[32m'     # Standard green
+    YELLOW = '\033[33m'    # Standard yellow
+    RED = '\033[31m'       # Standard red
+    MAGENTA = '\033[35m'   # Standard magenta
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    RESET = '\033[0m'
+
+
 @dataclass
 class BoosterConfig:
     """Configuration for a Magic: The Gathering booster pack."""
@@ -249,34 +261,34 @@ class BoosterBuilder:
         """
         config = self.build_booster_config()
 
-        print(f"{self.set_code} booster contents: {config}")
-        print(f"Booster layout: {config.layout}\n")
+        print(f"{Color.BOLD}{self.set_code} booster contents:{Color.RESET} {config}")
+        print(f"{Color.DIM}Booster layout: {config.layout}{Color.RESET}\n")
 
         # Build booster in order: commons, uncommons, rares, mythics, TSB
         booster = []
 
-        print("Building booster...")
+        print(f"{Color.BLUE}Building booster...{Color.RESET}")
         if config.commons > 0:
-            print(f"  Selecting {config.commons} commons...")
+            print(f"{Color.DIM}  Selecting {config.commons} commons...{Color.RESET}")
             booster.extend(self.get_cards_by_rarity('common', config.commons))
 
         if config.uncommons > 0:
-            print(f"  Selecting {config.uncommons} uncommons...")
+            print(f"{Color.DIM}  Selecting {config.uncommons} uncommons...{Color.RESET}")
             booster.extend(self.get_cards_by_rarity('uncommon', config.uncommons))
 
         if config.rares > 0:
-            print(f"  Selecting {config.rares} rares...")
+            print(f"{Color.DIM}  Selecting {config.rares} rares...{Color.RESET}")
             booster.extend(self.get_cards_by_rarity('rare', config.rares))
 
         if config.mythics > 0:
-            print(f"  Selecting {config.mythics} mythics...")
+            print(f"{Color.DIM}  Selecting {config.mythics} mythics...{Color.RESET}")
             booster.extend(self.get_cards_by_rarity('mythic', config.mythics))
 
         if config.tsb_cards > 0:
-            print(f"  Selecting {config.tsb_cards} timeshifted cards...")
+            print(f"{Color.DIM}  Selecting {config.tsb_cards} timeshifted cards...{Color.RESET}")
             booster.extend(self.get_tsb_cards(config.tsb_cards))
 
-        print(f"✓ Built booster with {len(booster)} cards\n")
+        print(f"{Color.GREEN}✓ Built booster with {len(booster)} cards{Color.RESET}\n")
 
         return booster, config.layout
 
@@ -293,7 +305,7 @@ class BoosterBuilder:
             for card in booster:
                 f.write(f"{card.art_url}\n")
 
-        print(f"✓ Saved booster to {card_urls_file} and {art_urls_file}\n")
+        print(f"{Color.GREEN}✓ Saved booster URLs{Color.RESET}\n")
 
 
 def main():
@@ -303,7 +315,7 @@ def main():
         if len(sys.argv) > 1:
             set_code = sys.argv[1].upper()
         else:
-            set_code = input("Enter a set code: ").strip().upper()
+            set_code = input(f"{Color.BOLD}{Color.MAGENTA}> Enter a set code: {Color.RESET}").strip().upper()
 
         print()
 
@@ -315,10 +327,10 @@ def main():
         print(f"LAYOUT:{layout}")
 
     except KeyboardInterrupt:
-        print("\n\nProcess interrupted by user")
+        print(f"\n{Color.YELLOW}Process interrupted by user{Color.RESET}")
         sys.exit(1)
     except Exception as e:
-        print(f"\nERROR: {e}")
+        print(f"\n{Color.RED}ERROR: {e}{Color.RESET}")
         sys.exit(1)
 
 

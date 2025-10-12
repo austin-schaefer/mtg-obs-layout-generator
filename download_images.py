@@ -15,6 +15,18 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 
+# ANSI color codes
+class Color:
+    BLUE = '\033[34m'      # Standard blue
+    GREEN = '\033[32m'     # Standard green
+    YELLOW = '\033[33m'    # Standard yellow
+    RED = '\033[31m'       # Standard red
+    MAGENTA = '\033[35m'   # Standard magenta
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    RESET = '\033[0m'
+
+
 @dataclass
 class Dimensions:
     """Image dimensions."""
@@ -48,15 +60,15 @@ def get_scryfall_urls(query: str, image_type: str) -> list[str]:
 
 def download_images(urls: list[str], output_dir: Path, label: str):
     """Download images with rate limiting."""
-    print(f"Downloading {len(urls)} {label} images...")
+    print(f"{Color.BLUE}Downloading {len(urls)} {label} images...{Color.RESET}")
 
     for i, url in enumerate(urls, 1):
         time.sleep(0.11)  # Scryfall API rate limiting
         filename = f"{i:05d}.png"
         urlretrieve(url, output_dir / filename)
-        print(f"  {i}/{len(urls)}: {filename}")
+        print(f"{Color.DIM}  {i}/{len(urls)}: {filename}{Color.RESET}")
 
-    print(f"✓ Downloaded all {label} images\n")
+    print(f"{Color.GREEN}✓ Downloaded all {label} images{Color.RESET}\n")
 
 
 def get_dimensions(image: Path) -> Dimensions:
@@ -89,7 +101,7 @@ def calculate_resize_geometry(dim: Dimensions, max_width: int, max_height: int) 
 
 def resize_art_images(art_dir: Path):
     """Resize artwork to fit within 1142x920 constraints."""
-    print("Resizing art images...")
+    print(f"{Color.BLUE}Resizing art images...{Color.RESET}")
 
     temp_dir = art_dir.parent / 'images_resized_art'
     temp_dir.mkdir(exist_ok=True)
@@ -100,14 +112,14 @@ def resize_art_images(art_dir: Path):
 
         if geometry:
             run(['convert', str(art_file), '-geometry', geometry, str(output_file)])
-            print(f"  Resized {art_file.name}")
+            print(f"{Color.DIM}  Resized {art_file.name}{Color.RESET}")
         else:
             shutil.copy2(art_file, output_file)
-            print(f"  Copied {art_file.name} (no resize needed)")
+            print(f"{Color.DIM}  Copied {art_file.name} (no resize needed){Color.RESET}")
 
     shutil.rmtree(art_dir)
     temp_dir.rename(art_dir)
-    print("✓ Resized all art images\n")
+    print(f"{Color.GREEN}✓ Resized all art images{Color.RESET}\n")
 
 
 def composite_image(foreground: Path, background: Path, output: Path, geometry: str):
@@ -117,18 +129,18 @@ def composite_image(foreground: Path, background: Path, output: Path, geometry: 
 
 def overlay_cards_on_backgrounds(card_dir: Path, export_dir: Path, background: Path):
     """Overlay card images onto marble backgrounds."""
-    print("Adding cards to backgrounds...")
+    print(f"{Color.BLUE}Adding cards to backgrounds...{Color.RESET}")
 
     for card in sorted(card_dir.glob('*.png')):
         composite_image(card, background, export_dir / card.name, '+210+195')
-        print(f"  {card.name}")
+        print(f"{Color.DIM}  {card.name}{Color.RESET}")
 
-    print("✓ Added all cards to backgrounds\n")
+    print(f"{Color.GREEN}✓ Added all cards to backgrounds{Color.RESET}\n")
 
 
 def overlay_art_on_backgrounds(art_dir: Path, base_dir: Path, output_dir: Path):
     """Overlay artwork onto backgrounds with dynamic centering."""
-    print("Adding art to backgrounds...")
+    print(f"{Color.BLUE}Adding art to backgrounds...{Color.RESET}")
 
     for art in sorted(art_dir.glob('*.png')):
         dim = get_dimensions(art)
@@ -138,20 +150,22 @@ def overlay_art_on_backgrounds(art_dir: Path, base_dir: Path, output_dir: Path):
         v_offset = 70 + ((940 - dim.height) // 2)
 
         composite_image(art, base_dir / art.name, output_dir / art.name, f'+{h_offset}+{v_offset}')
-        print(f"  {art.name}")
+        print(f"{Color.DIM}  {art.name}{Color.RESET}")
 
-    print("✓ Added all art to backgrounds\n")
+    print(f"{Color.GREEN}✓ Added all art to backgrounds{Color.RESET}\n")
 
 
 def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Path, frame_path: Path):
     """Add host frames and transparency holes."""
-    print("Adding frames and transparency...")
-
     # Add frames
+    print(f"{Color.BLUE}Adding frames...{Color.RESET}")
     for image in sorted(input_dir.glob('*.png')):
         composite_image(frame_path, image, frame_dir / image.name, '+0+0')
+        print(f"{Color.DIM}  {image.name}{Color.RESET}")
+    print(f"{Color.GREEN}✓ Added all frames{Color.RESET}\n")
 
     # Punch transparency holes
+    print(f"{Color.BLUE}Adding transparency...{Color.RESET}")
     for image in sorted(frame_dir.glob('*.png')):
         run([
             'convert', str(image),
@@ -162,14 +176,13 @@ def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Pat
             '-alpha', 'off', '-compose', 'copy_opacity', '-composite',
             str(final_dir / image.name)
         ])
-        print(f"  {image.name}")
-
-    print("✓ Added frames and transparency\n")
+        print(f"{Color.DIM}  {image.name}{Color.RESET}")
+    print(f"{Color.GREEN}✓ Added all transparency{Color.RESET}\n")
 
 
 def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, output: Path):
     """Create and composite the card grid."""
-    print("Creating grid...")
+    print(f"{Color.BLUE}Creating grid...{Color.RESET}")
 
     # Create montage in card directory (montage only works well with relative paths)
     with working_directory(card_dir):
@@ -178,10 +191,10 @@ def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, o
              '-geometry', '+10+40', '-background', 'none', *card_files, 'grid.png'])
 
     grid_path = card_dir / 'grid.png'
-    print("✓ Created montage\n")
+    print(f"{Color.GREEN}✓ Created montage{Color.RESET}\n")
 
     # Resize grid if needed
-    print("Resizing grid...")
+    print(f"{Color.BLUE}Resizing grid...{Color.RESET}")
     dim = get_dimensions(grid_path)
     geometry = calculate_resize_geometry(dim, 2500, 1400)
 
@@ -197,7 +210,7 @@ def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, o
     if (output.parent / 'grid_temp.png').exists():
         (output.parent / 'grid_temp.png').unlink()
 
-    print("✓ Final grid created\n")
+    print(f"{Color.GREEN}✓ Final grid created{Color.RESET}\n")
 
 
 def read_booster_urls() -> tuple[list[str], list[str]]:
@@ -215,19 +228,69 @@ def read_booster_urls() -> tuple[list[str], list[str]]:
     return card_urls, art_urls
 
 
+def check_existing_files() -> bool:
+    """
+    Check for existing export files and directories.
+    Returns True if user wants to continue, False if they want to exit.
+    """
+    base = Path.cwd()
+
+    # Check for directories and files
+    paths_to_check = [
+        base / 'images_card',
+        base / 'images_art',
+        base / 'images_export',
+        base / 'images_resized_art',
+        base / 'images_export_w_art',
+        base / 'images_export_w_art_and_frame',
+        base / 'images_export_final',
+        base / 'grid.png',
+        base / 'grid_temp.png',
+        base / 'booster_card_urls.txt',
+        base / 'booster_art_urls.txt',
+    ]
+
+    existing = [p for p in paths_to_check if p.exists()]
+
+    if not existing:
+        return True
+
+    # Found existing files - warn the user
+    print(f"{Color.YELLOW}Warning: Found existing export files/directories:{Color.RESET}")
+    for path in existing:
+        if path.is_dir():
+            print(f"{Color.DIM}  {path.name}/{Color.RESET}")
+        else:
+            print(f"{Color.DIM}  {path.name}{Color.RESET}")
+
+    print()
+    response = input(f"{Color.BOLD}{Color.MAGENTA}> Continue anyway? (y/n): {Color.RESET}").strip().lower()
+
+    if response == 'y':
+        print()
+        return True
+    else:
+        print(f"\n{Color.YELLOW}Exiting. Run './cleanup.py' to remove existing files.{Color.RESET}")
+        return False
+
+
 def main():
     """Main entry point."""
     try:
+        # Check for existing files before starting
+        if not check_existing_files():
+            sys.exit(0)
+
         # Get user input
-        input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip().upper()
+        input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: {Color.RESET}").strip().upper()
 
         if input_type == "BOOST":
             # Get set code from user
-            set_code = input("> Enter set code: ").strip().upper()
+            set_code = input(f"{Color.BOLD}{Color.MAGENTA}> Enter set code: {Color.RESET}").strip().upper()
             print()
 
             # Call booster_builder.py to build the booster
-            print("Building booster pack...\n")
+            print(f"{Color.YELLOW}Building booster pack...{Color.RESET}\n")
             result = run(['python3', 'booster_builder.py', set_code], capture=True)
 
             # Parse output to get layout
@@ -247,8 +310,8 @@ def main():
             query = None  # Not used in BOOST mode
 
         elif input_type == "SCRY":
-            query = input("> Enter Scryfall search query: ").strip()
-            grid_arrangement = input("> Enter grid arrangement (e.g. 8x0, 9x0, etc.): ").strip()
+            query = input(f"{Color.BOLD}{Color.MAGENTA}> Enter Scryfall search query: {Color.RESET}").strip()
+            grid_arrangement = input(f"{Color.BOLD}{Color.MAGENTA}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {Color.RESET}").strip()
             print()
             card_urls = None  # Will be fetched from Scryfall
             art_urls = None
@@ -278,12 +341,12 @@ def main():
         if card_urls is None:
             # SCRY mode: fetch from Scryfall
             card_urls = get_scryfall_urls(query, 'png')
-            print(f"✓ Found {len(card_urls)} cards\n")
+            print(f"{Color.GREEN}✓ Found {len(card_urls)} cards{Color.RESET}\n")
 
         if art_urls is None:
             # SCRY mode: fetch from Scryfall
             art_urls = get_scryfall_urls(query, 'art_crop')
-            print(f"✓ Found {len(art_urls)} artworks\n")
+            print(f"{Color.GREEN}✓ Found {len(art_urls)} artworks{Color.RESET}\n")
 
         download_images(card_urls, dirs['card'], 'card')
         download_images(art_urls, dirs['art'], 'art')
@@ -302,12 +365,12 @@ def main():
         # Cleanup temp directories
         for d in [dirs['export'], dirs['export_w_art'], dirs['export_w_frame']]:
             shutil.rmtree(d)
-        print("✓ Cleaned up temporary directories\n")
+        print(f"{Color.GREEN}✓ Cleaned up temporary directories{Color.RESET}\n")
 
         # Copy title background with frame to final directory as first and last slides
         shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '00000.png')
         shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '99999.png')
-        print("✓ Added title background to final directory (first and last slides)\n")
+        print(f"{Color.GREEN}✓ Added title background to final directory (first and last slides){Color.RESET}\n")
 
         # Create final grid
         create_grid(dirs['card'], grid_arrangement, resources / 'title_background.png', base / 'grid.png')
@@ -318,16 +381,16 @@ def main():
                 if f.exists():
                     f.unlink()
 
-        print("Finished! Check /images_export_final/ for output.")
+        print(f"{Color.BOLD}{Color.GREEN}Finished! Check /images_export_final/ for output.{Color.RESET}")
 
     except KeyboardInterrupt:
-        print("\n\nInterrupted by user")
+        print(f"\n{Color.YELLOW}Interrupted by user{Color.RESET}")
         sys.exit(1)
     except subprocess.CalledProcessError as e:
-        print(f"\nERROR: Command failed: {' '.join(e.cmd)}")
+        print(f"\n{Color.RED}ERROR: Command failed: {' '.join(e.cmd)}{Color.RESET}")
         sys.exit(1)
     except Exception as e:
-        print(f"\nERROR: {e}")
+        print(f"\n{Color.RED}ERROR: {e}{Color.RESET}")
         sys.exit(1)
 
 
