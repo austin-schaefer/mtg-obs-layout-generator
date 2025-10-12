@@ -2,402 +2,270 @@
 """
 OBS Layout Image Processor
 
-Refactored Python version of download_images.sh
-Handles the complete image processing pipeline for Magic: The Gathering card layouts.
+Processes Magic: The Gathering card images into OBS streaming layouts.
 """
 
-import os
-import sys
 import subprocess
+import sys
 import time
 import shutil
 from pathlib import Path
-from typing import List, Tuple
+from urllib.request import urlretrieve
+from contextlib import contextmanager
+from dataclasses import dataclass
 
 
-class ImageProcessor:
-    """Main class for processing MTG card images into OBS layouts."""
+@dataclass
+class Dimensions:
+    """Image dimensions."""
+    width: int
+    height: int
 
-    def __init__(self):
-        self.base_dir = Path.cwd()
-        self.directories = {
-            'card': self.base_dir / 'images_card',
-            'art': self.base_dir / 'images_art',
-            'resized_art': self.base_dir / 'images_resized_art',
-            'export': self.base_dir / 'images_export',
-            'export_w_art': self.base_dir / 'images_export_w_art',
-            'export_w_art_and_frame': self.base_dir / 'images_export_w_art_and_frame',
-            'export_final': self.base_dir / 'images_export_final',
-        }
-        self.resources_dir = self.base_dir / 'resources'
 
-    def print_status(self, message: str, prefix: str = ""):
-        """Print status message with optional prefix."""
-        print(f"{prefix}{message}")
+@contextmanager
+def working_directory(path: Path):
+    """Context manager for temporarily changing working directory."""
+    original = Path.cwd()
+    try:
+        import os
+        os.chdir(path)
+        yield
+    finally:
+        import os
+        os.chdir(original)
 
-    def run_command(self, cmd: List[str], capture_output: bool = False) -> subprocess.CompletedProcess:
-        """Run a shell command with error handling."""
-        try:
-            result = subprocess.run(
-                cmd,
-                check=True,
-                capture_output=capture_output,
-                text=True
-            )
-            return result
-        except subprocess.CalledProcessError as e:
-            self.print_status(f"ERROR: Command failed: {' '.join(cmd)}", "")
-            self.print_status(f"Error: {e}", "")
-            sys.exit(1)
 
-    def get_user_input(self) -> Tuple[str, str, str]:
-        """Get necessary user input for the processing pipeline."""
-        input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip()
+def run(cmd: list[str], capture: bool = False) -> subprocess.CompletedProcess:
+    """Run a command, optionally capturing output."""
+    return subprocess.run(cmd, check=True, capture_output=capture, text=True)
 
-        if input_type == "SCRY":
-            scryfall_search = input("> Enter Scryfall search query: ").strip()
-            grid_arrangement = input("> Enter grid arrangement (e.g. 8x0, 9x0, etc.): ").strip()
-            print()
-            return input_type, scryfall_search, grid_arrangement
 
-        return input_type, "", ""
+def get_scryfall_urls(query: str, image_type: str) -> list[str]:
+    """Get image URLs from Scryfall via the scry tool."""
+    result = run(['python3', 'scry', query, f'--print=%{{image_uris.{image_type}}}'], capture=True)
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-    def create_directories(self):
-        """Create all necessary directories for the pipeline."""
-        for dir_path in self.directories.values():
-            dir_path.mkdir(exist_ok=True)
 
-    def get_scryfall_urls(self, search_query: str, url_type: str) -> List[str]:
-        """
-        Query Scryfall for card URLs using the scry tool.
+def download_images(urls: list[str], output_dir: Path, label: str):
+    """Download images with rate limiting."""
+    print(f"Downloading {len(urls)} {label} images...")
 
-        Args:
-            search_query: Scryfall search query string
-            url_type: Either 'png' for card images or 'art_crop' for artwork
+    for i, url in enumerate(urls, 1):
+        time.sleep(0.11)  # Scryfall API rate limiting
+        filename = f"{i:05d}.png"
+        urlretrieve(url, output_dir / filename)
+        print(f"  {i}/{len(urls)}: {filename}")
 
-        Returns:
-            List of image URLs
-        """
-        print_format = f"%{{image_uris.{url_type}}}"
-        result = self.run_command(
-            ['python3', 'scry', search_query, f'--print={print_format}'],
-            capture_output=True
-        )
+    print(f"✓ Downloaded all {label} images\n")
 
-        # Split by newlines and filter out empty strings
-        urls = [url.strip() for url in result.stdout.split('\n') if url.strip()]
-        return urls
 
-    def download_images(self, urls: List[str], output_dir: Path, image_type: str):
-        """
-        Download images from URLs with rate limiting.
+def get_dimensions(image: Path) -> Dimensions:
+    """Get image dimensions using ImageMagick."""
+    result = run(['identify', '-ping', '-format', '%w %h', str(image)], capture=True)
+    width, height = result.stdout.strip().split()
+    return Dimensions(int(width), int(height))
 
-        Args:
-            urls: List of image URLs to download
-            output_dir: Directory to save images
-            image_type: Description for logging (e.g., 'card' or 'art')
-        """
-        self.print_status(f"START: Downloading all {image_type} images")
 
-        for count, url in enumerate(urls, start=1):
-            # Rate limiting - respect Scryfall API guidelines
-            time.sleep(0.11)
+def calculate_resize_geometry(dim: Dimensions, max_width: int, max_height: int) -> str | None:
+    """
+    Calculate ImageMagick resize geometry string.
+    Returns None if no resize needed.
+    """
+    too_wide = dim.width > max_width
+    too_tall = dim.height > max_height
+    too_small = dim.width < max_width and dim.height < max_height
 
-            # Format filename with zero-padding
-            filename = f"{count:05d}.png"
-            output_path = output_dir / filename
+    if too_wide and too_tall:
+        return f'{max_width}x{max_height}'
+    elif too_wide:
+        return str(max_width)
+    elif too_tall:
+        return f'x{max_height}'
+    elif too_small:
+        return f'{max_width}x{max_height}'
 
-            # Download image quietly
-            self.run_command(['wget', '-q', '-O', str(output_path), url])
-            self.print_status(f"Downloaded {image_type}: {url} - {filename}", "    ")
+    return None
 
-        self.print_status(f"SUCCESS: Downloaded all {image_type} images\n")
 
-    def get_image_dimensions(self, image_path: Path) -> Tuple[int, int]:
-        """Get width and height of an image using ImageMagick identify."""
-        width_result = self.run_command(
-            ['identify', '-ping', '-format', '%w', str(image_path)],
-            capture_output=True
-        )
-        height_result = self.run_command(
-            ['identify', '-ping', '-format', '%h', str(image_path)],
-            capture_output=True
-        )
+def resize_art_images(art_dir: Path):
+    """Resize artwork to fit within 1142x920 constraints."""
+    print("Resizing art images...")
 
-        return int(width_result.stdout.strip()), int(height_result.stdout.strip())
+    temp_dir = art_dir.parent / 'images_resized_art'
+    temp_dir.mkdir(exist_ok=True)
 
-    def resize_art_images(self):
-        """Resize artwork to fit within 1142x920 pixel constraints."""
-        self.print_status("START: Resizing art images")
+    for art_file in sorted(art_dir.glob('*.png')):
+        output_file = temp_dir / art_file.name
+        geometry = calculate_resize_geometry(get_dimensions(art_file), 1142, 920)
 
-        art_dir = self.directories['art']
-        resized_dir = self.directories['resized_art']
+        if geometry:
+            run(['convert', str(art_file), '-geometry', geometry, str(output_file)])
+            print(f"  Resized {art_file.name}")
+        else:
+            shutil.copy2(art_file, output_file)
+            print(f"  Copied {art_file.name} (no resize needed)")
 
-        for art_file in sorted(art_dir.glob('*.png')):
-            width, height = self.get_image_dimensions(art_file)
-            output_path = resized_dir / art_file.name
+    shutil.rmtree(art_dir)
+    temp_dir.rename(art_dir)
+    print("✓ Resized all art images\n")
 
-            # Determine appropriate resize geometry
-            if width > 1142 and height > 920:
-                # Too wide and too tall - fit to both dimensions
-                geometry = '1142x920'
-            elif width > 1142:
-                # Only too wide - fit by width
-                geometry = '1142'
-            elif height > 920:
-                # Only too tall - fit by height
-                geometry = 'x920'
-            elif width < 1143 and height < 921:
-                # Too small - upscale to fit
-                geometry = '1142x920'
-            else:
-                # No resize needed - copy file
-                shutil.copy2(art_file, output_path)
-                self.print_status(f"Copied art {art_file.name} (no resize needed)...", "    ")
-                continue
 
-            # Resize image
-            self.run_command(['convert', str(art_file), '-geometry', geometry, str(output_path)])
-            self.print_status(f"Resized art {art_file.name}...", "    ")
+def composite_image(foreground: Path, background: Path, output: Path, geometry: str):
+    """Composite one image onto another at a specific position."""
+    run(['magick', 'composite', '-geometry', geometry, str(foreground), str(background), str(output)])
 
-        # Replace original art directory with resized version
-        shutil.rmtree(art_dir)
-        resized_dir.rename(art_dir)
 
-        self.print_status("SUCCESS: Resized all art images\n")
+def overlay_cards_on_backgrounds(card_dir: Path, export_dir: Path, background: Path):
+    """Overlay card images onto marble backgrounds."""
+    print("Adding cards to backgrounds...")
 
-    def overlay_cards_on_backgrounds(self):
-        """Overlay card images onto marble backgrounds."""
-        self.print_status("START: Adding cards to backgrounds")
+    for card in sorted(card_dir.glob('*.png')):
+        composite_image(card, background, export_dir / card.name, '+210+195')
+        print(f"  {card.name}")
 
-        card_dir = self.directories['card']
-        export_dir = self.directories['export']
-        background = self.resources_dir / 'marble-background.png'
+    print("✓ Added all cards to backgrounds\n")
 
-        for card_file in sorted(card_dir.glob('*.png')):
-            output_path = export_dir / card_file.name
 
-            # Overlay card at position +210+195
-            self.run_command([
-                'magick', 'composite',
-                '-geometry', '+210+195',
-                str(card_file),
-                str(background),
-                str(output_path)
-            ])
-            self.print_status(f"Overlaid card to {card_file.name}...", "    ")
+def overlay_art_on_backgrounds(art_dir: Path, base_dir: Path, output_dir: Path):
+    """Overlay artwork onto backgrounds with dynamic centering."""
+    print("Adding art to backgrounds...")
 
-        self.print_status("SUCCESS: Done adding cards to backgrounds\n")
+    for art in sorted(art_dir.glob('*.png')):
+        dim = get_dimensions(art)
 
-    def overlay_art_on_backgrounds(self):
-        """Overlay artwork onto backgrounds with dynamic centering."""
-        self.print_status("START: Adding art to backgrounds")
+        # Calculate centering offsets
+        h_offset = 1000 + ((1494 - dim.width) // 2)
+        v_offset = 70 + ((940 - dim.height) // 2)
 
-        art_dir = self.directories['art']
-        export_dir = self.directories['export']
-        export_w_art_dir = self.directories['export_w_art']
+        composite_image(art, base_dir / art.name, output_dir / art.name, f'+{h_offset}+{v_offset}')
+        print(f"  {art.name}")
 
-        for art_file in sorted(art_dir.glob('*.png')):
-            # Get dimensions for centering calculation
-            width, height = self.get_image_dimensions(art_file)
+    print("✓ Added all art to backgrounds\n")
 
-            # Calculate offsets to center artwork
-            horizontal_offset = 1000 + ((1494 - width) // 2)
-            vertical_offset = 70 + ((940 - height) // 2)
 
-            # Overlay art on the corresponding background with card
-            input_bg = export_dir / art_file.name
-            output_path = export_w_art_dir / art_file.name
+def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Path, frame_path: Path):
+    """Add host frames and transparency holes."""
+    print("Adding frames and transparency...")
 
-            self.run_command([
-                'magick', 'composite',
-                '-geometry', f'+{horizontal_offset}+{vertical_offset}',
-                str(art_file),
-                str(input_bg),
-                str(output_path)
-            ])
-            self.print_status(f"Overlaid art to {art_file.name}...", "    ")
+    # Add frames
+    for image in sorted(input_dir.glob('*.png')):
+        composite_image(frame_path, image, frame_dir / image.name, '+0+0')
 
-        self.print_status("SUCCESS: Done adding art to backgrounds\n")
-
-    def overlay_frames_and_transparency(self):
-        """Overlay host frames and punch transparency holes."""
-        self.print_status("START: Overlaying host image")
-
-        export_w_art_dir = self.directories['export_w_art']
-        export_w_frame_dir = self.directories['export_w_art_and_frame']
-        final_dir = self.directories['export_final']
-        host_frame = self.resources_dir / 'host-frames-card-discussion.png'
-
-        # Overlay host frame
-        for input_file in sorted(export_w_art_dir.glob('*.png')):
-            output_path = export_w_frame_dir / input_file.name
-
-            self.run_command([
-                'magick', 'composite',
-                '-geometry', '+0+0',
-                str(host_frame),
-                str(input_file),
-                str(output_path)
-            ])
-            self.print_status(f"Overlaid host frame to {input_file.name}...", "    ")
-
-        # Punch transparency holes
-        for input_file in sorted(export_w_frame_dir.glob('*.png')):
-            output_path = final_dir / input_file.name
-
-            # Create transparency rectangles at specific coordinates
-            self.run_command([
-                'convert', str(input_file),
-                '(', '+clone', '-fill', 'white', '-colorize', '100',
-                '-fill', 'black',
-                '-draw', 'rectangle 1010,858 1489,1337',
-                '-draw', 'rectangle 2008,858 2487,1337', ')',
-                '-alpha', 'off',
-                '-compose', 'copy_opacity',
-                '-composite',
-                str(output_path)
-            ])
-            self.print_status(f"Added transparency boxes to {input_file.name}...", "    ")
-
-        self.print_status("SUCCESS: Done overlaying host images and transparencies\n")
-
-    def cleanup_temp_directories(self):
-        """Remove temporary export directories."""
-        dirs_to_remove = [
-            self.directories['export'],
-            self.directories['export_w_art'],
-            self.directories['export_w_art_and_frame']
-        ]
-
-        for dir_path in dirs_to_remove:
-            if dir_path.exists():
-                shutil.rmtree(dir_path)
-
-        self.print_status("SUCCESS: Finished cleaning up\n")
-
-    def create_grid(self, grid_arrangement: str):
-        """Create montage grid and composite onto background."""
-        self.print_status("Creating grid image...")
-
-        card_dir = self.directories['card']
-        grid_path = card_dir / 'grid.png'
-        grid_resized_path = self.base_dir / 'grid_resized.png'
-        final_grid_path = self.base_dir / 'grid.png'
-
-        # Change to card directory for montage
-        original_dir = Path.cwd()
-        os.chdir(card_dir)
-
-        try:
-            # Create montage grid
-            self.run_command([
-                'montage',
-                '-density', '200',
-                '-tile', grid_arrangement,
-                '-geometry', '+10+40',
-                '-background', 'none',
-                *sorted([str(f.name) for f in card_dir.glob('*.png')]),
-                'grid.png'
-            ])
-            self.print_status("SUCCESS: Card grid created\n")
-
-            # Get grid dimensions
-            width, height = self.get_image_dimensions(grid_path)
-
-            # Resize grid conditionally
-            if width > 2500 and height > 1400:
-                geometry = '2500x1400'
-            elif width > 2500:
-                geometry = '2500'
-            elif height > 1400:
-                geometry = 'x1400'
-            elif width < 2501 and height < 1401:
-                geometry = '2500x1400'
-            else:
-                # No resize needed
-                shutil.copy2(grid_path, grid_resized_path)
-                os.chdir(original_dir)
-                self.composite_final_grid(grid_resized_path, final_grid_path)
-                return
-
-            # Resize grid
-            self.run_command([
-                'convert',
-                'grid.png',
-                '-geometry', geometry,
-                str(grid_resized_path)
-            ])
-
-            # Return to original directory
-            os.chdir(original_dir)
-
-            # Composite grid onto title background
-            self.composite_final_grid(grid_resized_path, final_grid_path)
-
-        finally:
-            # Ensure we return to original directory
-            os.chdir(original_dir)
-
-    def composite_final_grid(self, grid_path: Path, output_path: Path):
-        """Composite the resized grid onto the title background."""
-        title_bg = self.resources_dir / 'title_background.png'
-
-        self.run_command([
-            'magick', 'composite',
-            '-gravity', 'center',
-            str(grid_path),
-            str(title_bg),
-            str(output_path)
+    # Punch transparency holes
+    for image in sorted(frame_dir.glob('*.png')):
+        run([
+            'convert', str(image),
+            '(', '+clone', '-fill', 'white', '-colorize', '100',
+            '-fill', 'black',
+            '-draw', 'rectangle 1010,858 1489,1337',
+            '-draw', 'rectangle 2008,858 2487,1337', ')',
+            '-alpha', 'off', '-compose', 'copy_opacity', '-composite',
+            str(final_dir / image.name)
         ])
+        print(f"  {image.name}")
 
-        # Clean up intermediate file
-        if grid_path.exists():
-            grid_path.unlink()
+    print("✓ Added frames and transparency\n")
 
-        self.print_status("SUCCESS: Final grid exported\n")
 
-    def run(self):
-        """Execute the complete image processing pipeline."""
-        # Get user input
-        input_type, scryfall_search, grid_arrangement = self.get_user_input()
+def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, output: Path):
+    """Create and composite the card grid."""
+    print("Creating grid...")
 
-        if input_type != "SCRY":
-            self.print_status("ERROR: Only SCRY mode is currently supported")
-            sys.exit(1)
+    # Create montage in card directory (montage only works well with relative paths)
+    with working_directory(card_dir):
+        card_files = sorted([f.name for f in card_dir.glob('*.png')])
+        run(['montage', '-density', '200', '-tile', grid_arrangement,
+             '-geometry', '+10+40', '-background', 'none', *card_files, 'grid.png'])
 
-        # Create directories
-        self.create_directories()
+    grid_path = card_dir / 'grid.png'
+    print("✓ Created montage\n")
 
-        # Get and download card images
-        card_urls = self.get_scryfall_urls(scryfall_search, 'png')
-        self.print_status("SUCCESS: Got list of card images\n")
-        self.download_images(card_urls, self.directories['card'], 'card')
+    # Resize grid if needed
+    print("Resizing grid...")
+    dim = get_dimensions(grid_path)
+    geometry = calculate_resize_geometry(dim, 2500, 1400)
 
-        # Get and download art images
-        art_urls = self.get_scryfall_urls(scryfall_search, 'art_crop')
-        self.print_status("SUCCESS: Got list of art images\n")
-        self.download_images(art_urls, self.directories['art'], 'art')
+    if geometry:
+        temp_grid = output.parent / 'grid_temp.png'
+        run(['convert', str(grid_path), '-geometry', geometry, str(temp_grid)])
+        grid_path = temp_grid
 
-        # Process images
-        self.resize_art_images()
-        self.overlay_cards_on_backgrounds()
-        self.overlay_art_on_backgrounds()
-        self.overlay_frames_and_transparency()
-        self.cleanup_temp_directories()
+    # Composite onto title background
+    composite_image(grid_path, title_background, output, 'center')
 
-        # Create final grid
-        self.create_grid(grid_arrangement)
+    # Cleanup
+    if (output.parent / 'grid_temp.png').exists():
+        (output.parent / 'grid_temp.png').unlink()
+
+    print("✓ Final grid created\n")
 
 
 def main():
     """Main entry point."""
-    processor = ImageProcessor()
-
     try:
-        processor.run()
+        # Get user input
+        input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip()
+
+        if input_type != "SCRY":
+            print("ERROR: Only SCRY mode is currently supported")
+            sys.exit(1)
+
+        query = input("> Enter Scryfall search query: ").strip()
+        grid_arrangement = input("> Enter grid arrangement (e.g. 8x0, 9x0, etc.): ").strip()
+        print()
+
+        # Setup paths
+        base = Path.cwd()
+        resources = base / 'resources'
+
+        dirs = {
+            'card': base / 'images_card',
+            'art': base / 'images_art',
+            'export': base / 'images_export',
+            'export_w_art': base / 'images_export_w_art',
+            'export_w_frame': base / 'images_export_w_art_and_frame',
+            'final': base / 'images_export_final',
+        }
+
+        # Create directories
+        for d in dirs.values():
+            d.mkdir(exist_ok=True)
+
+        # Download images
+        card_urls = get_scryfall_urls(query, 'png')
+        print(f"✓ Found {len(card_urls)} cards\n")
+        download_images(card_urls, dirs['card'], 'card')
+
+        art_urls = get_scryfall_urls(query, 'art_crop')
+        print(f"✓ Found {len(art_urls)} artworks\n")
+        download_images(art_urls, dirs['art'], 'art')
+
+        # Process images
+        resize_art_images(dirs['art'])
+        overlay_cards_on_backgrounds(dirs['card'], dirs['export'], resources / 'marble-background.png')
+        overlay_art_on_backgrounds(dirs['art'], dirs['export'], dirs['export_w_art'])
+        add_frames_and_transparency(
+            dirs['export_w_art'],
+            dirs['export_w_frame'],
+            dirs['final'],
+            resources / 'host-frames-card-discussion.png'
+        )
+
+        # Cleanup temp directories
+        for d in [dirs['export'], dirs['export_w_art'], dirs['export_w_frame']]:
+            shutil.rmtree(d)
+        print("✓ Cleaned up temporary directories\n")
+
+        # Create final grid
+        create_grid(dirs['card'], grid_arrangement, resources / 'title_background.png', base / 'grid.png')
+
+        print("🎉 All done!")
+
     except KeyboardInterrupt:
-        print("\n\nProcess interrupted by user")
+        print("\n\nInterrupted by user")
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"\nERROR: Command failed: {' '.join(e.cmd)}")
         sys.exit(1)
     except Exception as e:
         print(f"\nERROR: {e}")
