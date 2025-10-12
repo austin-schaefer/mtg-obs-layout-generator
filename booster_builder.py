@@ -81,8 +81,8 @@ class BoosterBuilder:
         if count == 0:
             return []
 
-        # Query for cards of this rarity in this set
-        query = f"e:{self.set_code.lower()} r:{rarity}"
+        # Query for cards of this rarity in this set (excluding basic lands)
+        query = f"e:{self.set_code.lower()} r:{rarity} -t:basic"
 
         # Get both card and art URLs
         card_urls = self.run_scry(query, '%{image_uris.png}')
