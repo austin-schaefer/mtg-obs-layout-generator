@@ -58,22 +58,26 @@ class Card:
 class BoosterBuilder:
     """Builds booster pack configurations based on Magic: The Gathering set codes."""
 
-    # Special odd-structure old sets
-    ARABIAN_ANTIQUITIES = {'ARN', 'ATQ'}
-    DARK_FALLEN_HOMELANDS = {'DRK', 'FEM', 'HML'}
-    ALLIANCES_CHRONICLES = {'ALL', 'CHR'}
-    UNGLUED = {'UGL'}
-    EARLY_CORE_SETS = {'7ED', '8ED', '9ED'}
-    TIME_SPIRAL = {'TSP'}
+    # Mythic odds constants
+    MYTHIC_RARE_ODDS = 8  # 1 in 8 packs contains a mythic rare
+    DARK_FALLEN_RARE_ODDS = 3  # 1 in 3 chance for rare in The Dark/Fallen Empires/Homelands
+
+    # Special odd-structure old sets (using frozenset for immutability)
+    ARABIAN_ANTIQUITIES = frozenset({'ARN', 'ATQ'})
+    DARK_FALLEN_HOMELANDS = frozenset({'DRK', 'FEM', 'HML'})
+    ALLIANCES_CHRONICLES = frozenset({'ALL', 'CHR'})
+    UNGLUED = frozenset({'UGL'})
+    EARLY_CORE_SETS = frozenset({'7ED', '8ED', '9ED'})
+    TIME_SPIRAL = frozenset({'TSP'})
 
     # Pre-mythic standard boosters
-    PRE_MYTHIC_SETS = {
+    PRE_MYTHIC_SETS = frozenset({
         'LEA', 'LEB', '2ED', '3ED', 'ICE', 'MIR', 'VIS', 'WTH', 'TMP', 'STH',
         'EXO', 'USG', 'ULG', 'UDS', 'MMQ', 'NMS', 'PCY', 'INV', 'PLS', 'APC',
         'ONS', 'LGN', 'SCG', 'MRD', 'DST', '5DN', 'CHK', 'BOK', 'SOK', 'RAV',
         'GPT', 'DIS', 'CSP', 'PLC', 'FUT', '10E', 'POR', 'PO2', 'P3K', 'PTK',
         'UNH'
-    }
+    })
 
     def __init__(self, set_code: str):
         self.set_code = set_code
@@ -164,7 +168,7 @@ class BoosterBuilder:
 
             # Two slots with 1/3 chance of rare, otherwise uncommon
             for _ in range(2):
-                if random.randint(0, 2) == 0:
+                if random.randint(0, self.DARK_FALLEN_RARE_ODDS - 1) == 0:
                     rares += 1
                 else:
                     uncommons += 1
@@ -233,10 +237,10 @@ class BoosterBuilder:
                 layout="5x0"
             )
 
-        # Default modern draft booster with mythic odds ~1:8
+        # Default modern draft booster with mythic odds
         else:
             # Rare slot with mythic chance: 1 in 8 is mythic
-            if random.randint(0, 7) == 0:
+            if random.randint(0, self.MYTHIC_RARE_ODDS - 1) == 0:
                 mythics = 1
                 rares = 0
             else:
