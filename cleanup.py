@@ -44,12 +44,15 @@ def main():
         'grid_temp.png',
     ]
 
+    removed_count = 0
+
     # Remove directories
     for dir_name in dirs_to_remove:
         dir_path = base / dir_name
         if dir_path.exists():
             shutil.rmtree(dir_path)
             print(f"{Color.DIM}Removed {dir_name}/{Color.RESET}")
+            removed_count += 1
 
     # Remove files
     for file_name in files_to_remove:
@@ -57,8 +60,12 @@ def main():
         if file_path.exists():
             file_path.unlink()
             print(f"{Color.DIM}Removed {file_name}{Color.RESET}")
+            removed_count += 1
 
-    print(f"\n{Color.BOLD}{Color.GREEN}✓ Cleanup complete{Color.RESET}\n")
+    if removed_count > 0:
+        print(f"\n{Color.BOLD}{Color.GREEN}✓ Cleanup complete - removed {removed_count} items{Color.RESET}\n")
+    else:
+        print(f"\n{Color.YELLOW}No files or directories to remove{Color.RESET}\n")
 
 
 if __name__ == '__main__':
