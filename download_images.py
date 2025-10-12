@@ -17,10 +17,11 @@ from dataclasses import dataclass
 
 # ANSI color codes
 class Color:
-    BLUE = '\033[34m'      # Standard blue instead of bright blue
-    GREEN = '\033[32m'     # Standard green instead of bright green
-    YELLOW = '\033[33m'    # Standard yellow instead of bright yellow
-    RED = '\033[31m'       # Standard red instead of bright red
+    BLUE = '\033[34m'      # Standard blue
+    GREEN = '\033[32m'     # Standard green
+    YELLOW = '\033[33m'    # Standard yellow
+    RED = '\033[31m'       # Standard red
+    MAGENTA = '\033[35m'   # Standard magenta
     BOLD = '\033[1m'
     DIM = '\033[2m'
     RESET = '\033[0m'
@@ -230,11 +231,11 @@ def main():
     """Main entry point."""
     try:
         # Get user input
-        input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip().upper()
+        input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: {Color.RESET}").strip().upper()
 
         if input_type == "BOOST":
             # Get set code from user
-            set_code = input(f"{Color.BOLD}> Enter set code: {Color.RESET}").strip().upper()
+            set_code = input(f"{Color.BOLD}{Color.MAGENTA}> Enter set code: {Color.RESET}").strip().upper()
             print()
 
             # Call booster_builder.py to build the booster
@@ -258,8 +259,8 @@ def main():
             query = None  # Not used in BOOST mode
 
         elif input_type == "SCRY":
-            query = input(f"{Color.BOLD}> Enter Scryfall search query: {Color.RESET}").strip()
-            grid_arrangement = input(f"{Color.BOLD}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {Color.RESET}").strip()
+            query = input(f"{Color.BOLD}{Color.MAGENTA}> Enter Scryfall search query: {Color.RESET}").strip()
+            grid_arrangement = input(f"{Color.BOLD}{Color.MAGENTA}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {Color.RESET}").strip()
             print()
             card_urls = None  # Will be fetched from Scryfall
             art_urls = None

@@ -15,10 +15,11 @@ from dataclasses import dataclass
 
 # ANSI color codes
 class Color:
-    BLUE = '\033[34m'      # Standard blue instead of bright blue
-    GREEN = '\033[32m'     # Standard green instead of bright green
-    YELLOW = '\033[33m'    # Standard yellow instead of bright yellow
-    RED = '\033[31m'       # Standard red instead of bright red
+    BLUE = '\033[34m'      # Standard blue
+    GREEN = '\033[32m'     # Standard green
+    YELLOW = '\033[33m'    # Standard yellow
+    RED = '\033[31m'       # Standard red
+    MAGENTA = '\033[35m'   # Standard magenta
     BOLD = '\033[1m'
     DIM = '\033[2m'
     RESET = '\033[0m'
@@ -314,7 +315,7 @@ def main():
         if len(sys.argv) > 1:
             set_code = sys.argv[1].upper()
         else:
-            set_code = input(f"{Color.BOLD}Enter a set code: {Color.RESET}").strip().upper()
+            set_code = input(f"{Color.BOLD}{Color.MAGENTA}> Enter a set code: {Color.RESET}").strip().upper()
 
         print()
 
