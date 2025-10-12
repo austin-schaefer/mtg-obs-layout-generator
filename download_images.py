@@ -190,8 +190,8 @@ def create_grid(card_dir: Path, grid_arrangement: str, title_background: Path, o
         run(['convert', str(grid_path), '-geometry', geometry, str(temp_grid)])
         grid_path = temp_grid
 
-    # Composite onto title background
-    composite_image(grid_path, title_background, output, 'center')
+    # Composite onto title background (centered)
+    run(['magick', 'composite', '-gravity', 'center', str(grid_path), str(title_background), str(output)])
 
     # Cleanup
     if (output.parent / 'grid_temp.png').exists():
