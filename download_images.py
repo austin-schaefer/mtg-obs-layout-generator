@@ -304,6 +304,10 @@ def main():
             shutil.rmtree(d)
         print("✓ Cleaned up temporary directories\n")
 
+        # Copy title background with frame to final directory as 00000.png (so it sorts first)
+        shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '00000.png')
+        print("✓ Added title background to final directory\n")
+
         # Create final grid
         create_grid(dirs['card'], grid_arrangement, resources / 'title_background.png', base / 'grid.png')
 
