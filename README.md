@@ -6,6 +6,10 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 
 1. **Generate card layouts:**
    ```bash
+   # Using Python (recommended)
+   ./download_images.py
+
+   # Or using bash
    ./download_images.sh
    ```
 
@@ -47,21 +51,32 @@ See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queri
 
 ## Requirements
 
-- Python 3
+- Python 3 (required)
 - ImageMagick (`brew install imagemagick` on macOS)
 - wget (`brew install wget` on macOS)
-- Bash/Zsh shell
+- Bash/Zsh shell (only required for bash version)
 
 ## File Structure
 
 ```
 obs-layouts/
-├── download_images.sh     # Main workflow script
+├── download_images.py    # Main workflow script (Python)
+├── download_images.sh    # Main workflow script (Bash)
 ├── cleanup.sh            # Cleanup utility
 ├── scry                  # Scryfall API client
 ├── resources/            # Background assets
 └── [generated dirs]      # Created during processing
 ```
+
+## Implementation Notes
+
+**Python vs Bash**: The Python version (`download_images.py`) is the recommended implementation. It offers:
+- Better error handling and logging
+- Cross-platform compatibility
+- More maintainable code structure
+- Object-oriented design for easier extension
+
+The bash version (`download_images.sh`) is preserved for reference and compatibility.
 
 ## Troubleshooting
 
