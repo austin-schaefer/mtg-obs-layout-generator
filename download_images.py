@@ -282,7 +282,7 @@ def main():
             sys.exit(0)
 
         # Get user input
-        input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRY/SCRYFALL for Scryfall search, or BOOST/BOOSTER for booster pack: {Color.RESET}").strip().upper()
+        input_type = input(f"{Color.BOLD}{Color.MAGENTA}> Input type? Enter SCRYFALL for Scryfall search, or BOOSTER for booster pack: {Color.RESET}").strip().upper()
 
         # Normalize input type
         if input_type in ("BOOST", "BOOSTER"):
