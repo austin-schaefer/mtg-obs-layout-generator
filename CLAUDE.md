@@ -8,12 +8,14 @@ This repository is an OBS (Open Broadcaster Software) layout generator for Magic
 
 ## Core Architecture
 
-The project consists of four main components:
+The project consists of six main components:
 
 1. **`scry` (Python executable)**: A Scryfall API client for fetching Magic: The Gathering card data
 2. **`download_images.py`**: Main workflow script (Python implementation - recommended)
 3. **`download_images.sh`**: Main workflow script (Bash implementation - legacy)
-4. **`cleanup.sh`**: Utility script for removing generated files and temporary directories
+4. **`booster_builder.py`**: Booster pack composition calculator (Python implementation - recommended)
+5. **`booster-builder-bash.sh`**: Booster pack composition calculator (Bash implementation - legacy)
+6. **`cleanup.sh`**: Utility script for removing generated files and temporary directories
 
 ### Image Processing Pipeline
 
@@ -59,6 +61,20 @@ python3 scry "search_query" --print="%{image_uris.art_crop}"
 ```bash
 ./cleanup.sh
 ```
+
+### Determining Booster Pack Composition
+```bash
+# Python version (recommended)
+./booster_builder.py
+
+# Or bash version
+./booster-builder-bash.sh
+```
+This tool calculates the correct booster pack composition for any Magic set code, handling:
+- Special historical sets (Arabian Nights, The Dark, Fallen Empires, etc.)
+- Pre-mythic era standard boosters
+- Modern boosters with mythic rarity randomization (1/8 chance)
+- Unique set structures (Time Spiral with timeshifted cards)
 
 ## Dependencies
 

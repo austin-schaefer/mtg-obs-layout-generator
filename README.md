@@ -56,16 +56,36 @@ See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queri
 - wget (`brew install wget` on macOS)
 - Bash/Zsh shell (only required for bash version)
 
+## Booster Pack Builder
+
+Determine accurate booster pack composition for any Magic set:
+
+```bash
+# Python version (recommended)
+./booster_builder.py
+
+# Or bash version
+./booster-builder-bash.sh
+```
+
+Enter a set code (e.g., `NEO`, `ARN`, `TSP`) and the tool will output the correct number of commons, uncommons, rares, and mythics based on that set's booster structure. Handles special cases including:
+- Historical sets with unique structures (Arabian Nights, The Dark, etc.)
+- Pre-mythic era sets
+- Modern sets with mythic rarity
+- Time Spiral's timeshifted cards
+
 ## File Structure
 
 ```
 obs-layouts/
-├── download_images.py    # Main workflow script (Python)
-├── download_images.sh    # Main workflow script (Bash)
-├── cleanup.sh            # Cleanup utility
-├── scry                  # Scryfall API client
-├── resources/            # Background assets
-└── [generated dirs]      # Created during processing
+├── download_images.py        # Main workflow script (Python)
+├── download_images.sh        # Main workflow script (Bash)
+├── booster_builder.py        # Booster composition tool (Python)
+├── booster-builder-bash.sh   # Booster composition tool (Bash)
+├── cleanup.sh                # Cleanup utility
+├── scry                      # Scryfall API client
+├── resources/                # Background assets
+└── [generated dirs]          # Created during processing
 ```
 
 ## Implementation Notes
