@@ -299,7 +299,12 @@ class BoosterBuilder:
 def main():
     """Main entry point."""
     try:
-        set_code = input("Enter a set code: ").strip().upper()
+        # Check if set code was provided as command line argument
+        if len(sys.argv) > 1:
+            set_code = sys.argv[1].upper()
+        else:
+            set_code = input("Enter a set code: ").strip().upper()
+
         print()
 
         builder = BoosterBuilder(set_code)

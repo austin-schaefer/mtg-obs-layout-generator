@@ -222,9 +222,13 @@ def main():
         input_type = input("> Input type? Enter SCRY for Scryfall search, or BOOST for booster-builder: ").strip().upper()
 
         if input_type == "BOOST":
+            # Get set code from user
+            set_code = input("> Enter set code: ").strip().upper()
+            print()
+
             # Call booster_builder.py to build the booster
-            print("\nBuilding booster pack...\n")
-            result = run(['python3', 'booster_builder.py'], capture=True)
+            print("Building booster pack...\n")
+            result = run(['python3', 'booster_builder.py', set_code], capture=True)
 
             # Parse output to get layout
             layout = None
