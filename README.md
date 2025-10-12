@@ -1,6 +1,6 @@
 # OBS Magic: The Gathering Layout Generator
 
-An automated tool for creating custom OBS layouts and card grids for Magic: The Gathering streaming and content creation.
+An automated tool for creating custom OBS layouts and card grids for Magic: The Gathering streaming and content creation. Used to create slideshows for the [Clock Spinning Podcast](https://www.youtube.com/@clockspinning).
 
 ## Quick start
 
@@ -43,6 +43,7 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 ```bash
 # Python version (recommended)
 ./cleanup.py
+```
 
 ## What this tool creates
 
