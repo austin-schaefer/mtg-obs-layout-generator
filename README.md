@@ -46,9 +46,9 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 
 ## What this tool creates
 
-- **Individual Card Layouts**: Each card composited with artwork on a marble background, ready for OBS overlay
-- **Card Grids**: Montage arrangements of multiple cards for deck discussions or set overviews
-- **Streaming-Ready Graphics**: Pre-positioned transparency holes for webcam/chat overlays
+- **Individual card layouts**: Each card composited with artwork on a marble background, ready for OBS overlay
+- **Card grids**: Montage arrangements of multiple cards for deck discussions or set overviews
+- **Streaming-ready graphics**: Pre-positioned transparency holes for webcam/chat overlays
 
 ## Search query examples
 
