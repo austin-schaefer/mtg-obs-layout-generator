@@ -67,6 +67,10 @@ python3 scry "search_query" --print="%{image_uris.art_crop}"
 
 ### Cleanup Generated Files
 ```bash
+# Python version (recommended)
+./cleanup.py
+
+# Or bash version
 ./cleanup.sh
 ```
 

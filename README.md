@@ -41,6 +41,10 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 ### Cleanup
 
 ```bash
+# Python version (recommended)
+./cleanup.py
+
+# Or bash version
 ./cleanup.sh
 ```
 
