@@ -338,7 +338,8 @@ def validate_custom_directory(custom_dir: Path) -> list[CustomImagePair]:
     if not custom_dir.is_dir():
         raise ValueError(f"Custom directory missing or not a directory: {custom_dir}")
 
-    files = [f for f in custom_dir.iterdir() if f.is_file()]
+    # Filter out hidden files and system files
+    files = [f for f in custom_dir.iterdir() if f.is_file() and not f.name.startswith('.')]
     if not files:
         raise ValueError(f"Custom directory is empty: {custom_dir}")
 
