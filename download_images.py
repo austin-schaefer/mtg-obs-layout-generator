@@ -40,6 +40,16 @@ class ImageConfig:
     MAX_GRID_WIDTH = 2500
     MAX_GRID_HEIGHT = 1400
 
+    # Hero image constraints
+    MAX_HERO_WIDTH = 850
+    MAX_HERO_HEIGHT = 1250
+
+    # Hero image centering region (on title_background_w_frame.png)
+    HERO_REGION_X = 50
+    HERO_REGION_Y = 95
+    HERO_REGION_WIDTH = 850
+    HERO_REGION_HEIGHT = 1240
+
     # Scryfall API rate limit (seconds)
     API_DELAY = 0.11
 
@@ -259,6 +269,60 @@ def read_booster_urls() -> tuple[list[str], list[str]]:
     return card_urls, art_urls
 
 
+def find_hero_image(resources_dir: Path) -> Path | None:
+    """
+    Find hero image in resources directory.
+    Looks for hero.{jpg,jpeg,png,gif} and returns the first match.
+    """
+    for ext in ['jpg', 'jpeg', 'png', 'gif']:
+        hero_path = resources_dir / f'hero.{ext}'
+        if hero_path.exists():
+            return hero_path
+    return None
+
+
+def create_hero_title_slide(hero_path: Path, resources_dir: Path, output_path: Path):
+    """
+    Create title slide with centered hero image.
+
+    Resizes hero to fit within MAX_HERO_WIDTH x MAX_HERO_HEIGHT,
+    then centers it on title_background_w_frame.png within the hero region.
+    """
+    print(f"{Color.BLUE}Creating hero title slide...{Color.RESET}")
+
+    # Create temp directory for resized hero
+    temp_hero_dir = Path.cwd() / 'temp_hero'
+    temp_hero_dir.mkdir(exist_ok=True)
+
+    # Resize hero image using existing resize logic
+    resized_hero = temp_hero_dir / 'hero_resized.png'
+    dim = get_dimensions(hero_path)
+    geometry = calculate_resize_geometry(dim, ImageConfig.MAX_HERO_WIDTH, ImageConfig.MAX_HERO_HEIGHT)
+
+    if geometry:
+        run(['convert', str(hero_path), '-geometry', geometry, str(resized_hero)])
+        print(f"{Color.DIM}  Resized hero image{Color.RESET}")
+    else:
+        shutil.copy2(hero_path, resized_hero)
+        print(f"{Color.DIM}  Hero image already correct size{Color.RESET}")
+
+    # Get dimensions of resized hero
+    hero_dim = get_dimensions(resized_hero)
+
+    # Calculate centering offset within hero region
+    x_offset = ImageConfig.HERO_REGION_X + ((ImageConfig.HERO_REGION_WIDTH - hero_dim.width) // 2)
+    y_offset = ImageConfig.HERO_REGION_Y + ((ImageConfig.HERO_REGION_HEIGHT - hero_dim.height) // 2)
+
+    # Composite hero onto title background with frame
+    title_bg = resources_dir / 'title_background_w_frame.png'
+    composite_image(resized_hero, title_bg, output_path, f'+{x_offset}+{y_offset}')
+
+    # Cleanup temp directory
+    shutil.rmtree(temp_hero_dir)
+
+    print(f"{Color.GREEN}✓ Created hero title slide{Color.RESET}\n")
+
+
 @dataclass
 class InputMode:
     """User input mode configuration."""
@@ -285,8 +349,10 @@ def check_existing_files() -> bool:
         base / 'images_export_w_art',
         base / 'images_export_w_art_and_frame',
         base / 'images_export_final',
+        base / 'temp_hero',
         base / 'grid.png',
         base / 'grid_temp.png',
+        base / 'temp_hero_title.png',
         base / 'booster_card_urls.txt',
         base / 'booster_art_urls.txt',
     ]
@@ -364,6 +430,23 @@ def main():
         if not check_existing_files():
             sys.exit(0)
 
+        # Check if user wants a hero image
+        hero_response = input(f"{Color.BOLD}{Color.MAGENTA}> Do you want a hero image on the title slide? (y/n): {Color.RESET}").strip().lower()
+        print()
+
+        hero_path = None
+        if hero_response == 'y':
+            # Look for hero image in resources
+            resources = Path.cwd() / 'resources'
+            hero_path = find_hero_image(resources)
+
+            if hero_path is None:
+                print(f"{Color.RED}ERROR: No hero image found in /resources/{Color.RESET}")
+                print(f"{Color.YELLOW}Please add a file named 'hero' with extension .jpg, .jpeg, .png, or .gif{Color.RESET}")
+                sys.exit(1)
+
+            print(f"{Color.GREEN}✓ Found hero image: {hero_path.name}{Color.RESET}\n")
+
         # Get user input and mode configuration
         mode = get_user_input_mode()
 
@@ -416,10 +499,25 @@ def main():
             shutil.rmtree(d)
         print(f"{Color.GREEN}✓ Cleaned up temporary directories{Color.RESET}\n")
 
-        # Copy title background with frame to final directory as first and last slides
-        shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '00000.png')
-        shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '99999.png')
-        print(f"{Color.GREEN}✓ Added title background to final directory (first and last slides){Color.RESET}\n")
+        # Create title slides (first and last slides)
+        if hero_path:
+            # Create hero title slide
+            hero_title_slide = base / 'temp_hero_title.png'
+            create_hero_title_slide(hero_path, resources, hero_title_slide)
+
+            # Copy to first and last positions
+            shutil.copy2(hero_title_slide, dirs['final'] / '00000.png')
+            shutil.copy2(hero_title_slide, dirs['final'] / '99999.png')
+
+            # Cleanup temp file
+            hero_title_slide.unlink()
+
+            print(f"{Color.GREEN}✓ Added hero title slides to final directory (first and last slides){Color.RESET}\n")
+        else:
+            # Copy plain title background with frame
+            shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '00000.png')
+            shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '99999.png')
+            print(f"{Color.GREEN}✓ Added title background to final directory (first and last slides){Color.RESET}\n")
 
         # Create final grid
         create_grid(dirs['card'], mode.grid_arrangement, resources / 'title_background.png', base / 'grid.png')

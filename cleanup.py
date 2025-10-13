@@ -32,6 +32,7 @@ def main():
         'images_export_w_art',
         'images_export_w_art_and_frame',
         'images_export_final',
+        'temp_hero',
     ]
 
     # Files to remove
@@ -42,6 +43,7 @@ def main():
         'booster_art_urls.txt',
         'grid.png',
         'grid_temp.png',
+        'temp_hero_title.png',
     ]
 
     removed_count = 0
