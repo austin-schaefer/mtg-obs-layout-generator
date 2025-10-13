@@ -24,35 +24,19 @@ class ImageConfig:
     # Horizontal images are wide/landscape orientation (MTG card art, custom horizontal images)
     MAX_HORIZONTAL_WIDTH = 1142
     MAX_HORIZONTAL_HEIGHT = 920
-
-    # Horizontal image centering calculations (dynamic positioning on backgrounds)
-    HORIZONTAL_H_BASE = 1000
-    HORIZONTAL_H_RANGE = 1494
-    HORIZONTAL_V_BASE = 70
-    HORIZONTAL_V_RANGE = 940
+    HORIZONTAL_REGION_X = 1000
+    HORIZONTAL_REGION_Y = 70
+    HORIZONTAL_REGION_WIDTH = 1494
+    HORIZONTAL_REGION_HEIGHT = 940
 
     # === Vertical Image Settings ===
-    # Vertical images are tall/portrait orientation (MTG cards, custom vertical images)
-
-    # MTG card overlay position on marble background
-    CARD_OFFSET = '+210+195'
-
-    # Custom vertical image constraints and centering region (on marble-background.png)
-    MAX_CUSTOM_VERT_WIDTH = 850
-    MAX_CUSTOM_VERT_HEIGHT = 1250
-    CUSTOM_VERT_REGION_X = 75
-    CUSTOM_VERT_REGION_Y = 95
-    CUSTOM_VERT_REGION_WIDTH = 850
-    CUSTOM_VERT_REGION_HEIGHT = 1210
-
-    # === Hero Image Settings ===
-    # Hero images appear on title slides
-    MAX_HERO_WIDTH = 850
-    MAX_HERO_HEIGHT = 1250
-    HERO_REGION_X = 50
-    HERO_REGION_Y = 95
-    HERO_REGION_WIDTH = 850
-    HERO_REGION_HEIGHT = 1240
+    # Vertical images are tall/portrait orientation (MTG cards, custom vertical images, hero images)
+    MAX_VERT_WIDTH = 850
+    MAX_VERT_HEIGHT = 1250
+    VERT_REGION_X = 75
+    VERT_REGION_Y = 95
+    VERT_REGION_WIDTH = 850
+    VERT_REGION_HEIGHT = 1210
 
     # === Transparency and Grid Settings ===
     TRANSPARENCY_RECT_1 = '1010,858 1489,1337'
@@ -142,14 +126,42 @@ def calculate_resize_geometry(dim: Dimensions, max_width: int, max_height: int) 
     return None
 
 
-def resize_horizontal_images(horizontal_dir: Path):
-    """Resize horizontal images to fit within configured constraints."""
-    return resize_images_generic(
-        horizontal_dir,
-        ImageConfig.MAX_HORIZONTAL_WIDTH,
-        ImageConfig.MAX_HORIZONTAL_HEIGHT,
-        "horizontal"
-    )
+def resize_image(input_path: Path, output_path: Path, max_width: int, max_height: int) -> bool:
+    """
+    Resize a single image to fit within max dimensions.
+    Returns True if image was resized, False if copied without resizing.
+    """
+    dim = get_dimensions(input_path)
+    geometry = calculate_resize_geometry(dim, max_width, max_height)
+
+    if geometry:
+        run(['convert', str(input_path), '-geometry', geometry, str(output_path)])
+        return True
+    else:
+        shutil.copy2(input_path, output_path)
+        return False
+
+
+def overlay_centered(
+    image_path: Path,
+    background_path: Path,
+    output_path: Path,
+    region_x: int,
+    region_y: int,
+    region_width: int,
+    region_height: int
+):
+    """
+    Overlay an image centered within a specific region on a background.
+    Calculates the centering offset and composites the image.
+    """
+    dim = get_dimensions(image_path)
+
+    # Calculate centering offset within region
+    x_offset = region_x + ((region_width - dim.width) // 2)
+    y_offset = region_y + ((region_height - dim.height) // 2)
+
+    composite_image(image_path, background_path, output_path, f'+{x_offset}+{y_offset}')
 
 
 def composite_image(foreground: Path, background: Path, output: Path, geometry: str):
@@ -157,98 +169,85 @@ def composite_image(foreground: Path, background: Path, output: Path, geometry: 
     run(['magick', 'composite', '-geometry', geometry, str(foreground), str(background), str(output)])
 
 
-def overlay_cards_on_backgrounds(card_dir: Path, export_dir: Path, background: Path):
-    """Overlay card images onto marble backgrounds."""
-    print(f"{C['blue']}Adding cards to backgrounds...{C['reset']}")
-
-    for card in sorted(card_dir.glob('*.png')):
-        composite_image(card, background, export_dir / card.name, ImageConfig.CARD_OFFSET)
-        print(f"{C['dim']}  {card.name}{C['reset']}")
-
-    print(f"{C['green']}✓ Added all cards to backgrounds{C['reset']}\n")
-
-
-def overlay_horizontal_on_backgrounds(horizontal_dir: Path, base_dir: Path, output_dir: Path):
-    """Overlay horizontal images onto backgrounds with dynamic centering."""
-    print(f"{C['blue']}Adding horizontal images to backgrounds...{C['reset']}")
-
-    for image in sorted(horizontal_dir.glob('*.png')):
-        dim = get_dimensions(image)
-
-        # Calculate centering offsets
-        h_offset = ImageConfig.HORIZONTAL_H_BASE + ((ImageConfig.HORIZONTAL_H_RANGE - dim.width) // 2)
-        v_offset = ImageConfig.HORIZONTAL_V_BASE + ((ImageConfig.HORIZONTAL_V_RANGE - dim.height) // 2)
-
-        composite_image(image, base_dir / image.name, output_dir / image.name, f'+{h_offset}+{v_offset}')
-        print(f"{C['dim']}  {image.name}{C['reset']}")
-
-    print(f"{C['green']}✓ Added all horizontal images to backgrounds{C['reset']}\n")
-
-
-def resize_images_generic(
-    input_dir: Path,
-    max_width: int,
-    max_height: int,
-    label: str
-) -> Path:
+def process_mtg_images(dirs: dict, resources: Path):
     """
-    Generic image resizing function.
-    Returns path to directory containing resized images.
+    Process MTG card and art images.
+    MTG images are already perfect size from Scryfall, so we skip resizing.
     """
-    print(f"{C['blue']}Resizing {label} images...{C['reset']}")
-
-    temp_dir = input_dir.parent / f'images_resized_{label.replace(" ", "_").lower()}'
+    # Resize horizontal art images
+    print(f"{C['blue']}Resizing art images...{C['reset']}")
+    temp_dir = dirs['horizontal'].parent / f'temp_resize_{dirs["horizontal"].name}'
     temp_dir.mkdir(exist_ok=True)
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        resized = resize_image(img, temp_dir / img.name, ImageConfig.MAX_HORIZONTAL_WIDTH, ImageConfig.MAX_HORIZONTAL_HEIGHT)
+        print(f"{C['dim']}  {'Resized' if resized else 'Copied'}: {img.name}{C['reset']}")
+    shutil.rmtree(dirs['horizontal'])
+    temp_dir.rename(dirs['horizontal'])
+    print(f"{C['green']}✓ Resized art images{C['reset']}\n")
 
-    for image_file in sorted(input_dir.glob('*.png')):
-        output_file = temp_dir / image_file.name
-        geometry = calculate_resize_geometry(
-            get_dimensions(image_file),
-            max_width,
-            max_height
-        )
+    # Overlay cards centered in vertical region (no resize - cards are already perfect)
+    print(f"{C['blue']}Adding cards to backgrounds...{C['reset']}")
+    for img in sorted(dirs['vertical'].glob('*.png')):
+        overlay_centered(img, resources / 'marble-background.png', dirs['export'] / img.name,
+                        ImageConfig.VERT_REGION_X, ImageConfig.VERT_REGION_Y,
+                        ImageConfig.VERT_REGION_WIDTH, ImageConfig.VERT_REGION_HEIGHT)
+        print(f"{C['dim']}  {img.name}{C['reset']}")
+    print(f"{C['green']}✓ Added cards{C['reset']}\n")
 
-        if geometry:
-            run(['convert', str(image_file), '-geometry', geometry, str(output_file)])
-            print(f"{C['dim']}  Resized {image_file.name}{C['reset']}")
-        else:
-            shutil.copy2(image_file, output_file)
-            print(f"{C['dim']}  Copied {image_file.name} (no resize needed){C['reset']}")
-
-    shutil.rmtree(input_dir)
-    temp_dir.rename(input_dir)
-    print(f"{C['green']}✓ Resized all {label} images{C['reset']}\n")
-
-    return input_dir
+    # Overlay art centered in horizontal region
+    print(f"{C['blue']}Adding art to backgrounds...{C['reset']}")
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        overlay_centered(img, dirs['export'] / img.name, dirs['export_w_horizontal'] / img.name,
+                        ImageConfig.HORIZONTAL_REGION_X, ImageConfig.HORIZONTAL_REGION_Y,
+                        ImageConfig.HORIZONTAL_REGION_WIDTH, ImageConfig.HORIZONTAL_REGION_HEIGHT)
+        print(f"{C['dim']}  {img.name}{C['reset']}")
+    print(f"{C['green']}✓ Added art{C['reset']}\n")
 
 
-def overlay_images_centered_in_region(
-    image_dir: Path,
-    background: Path,
-    output_dir: Path,
-    region_x: int,
-    region_y: int,
-    region_width: int,
-    region_height: int,
-    label: str
-):
+def process_custom_images(dirs: dict, resources: Path):
     """
-    Generic function to overlay images centered within a specific region on a background.
-    Used for both custom vertical images and hero images.
+    Process custom vertical and horizontal images.
+    Custom images need to be resized to fit within max constraints before centering.
     """
-    print(f"{C['blue']}Adding {label} to backgrounds...{C['reset']}")
+    # Resize vertical images
+    print(f"{C['blue']}Resizing vertical images...{C['reset']}")
+    temp_dir = dirs['vertical'].parent / f'temp_resize_{dirs["vertical"].name}'
+    temp_dir.mkdir(exist_ok=True)
+    for img in sorted(dirs['vertical'].glob('*.png')):
+        resized = resize_image(img, temp_dir / img.name, ImageConfig.MAX_VERT_WIDTH, ImageConfig.MAX_VERT_HEIGHT)
+        print(f"{C['dim']}  {'Resized' if resized else 'Copied'}: {img.name}{C['reset']}")
+    shutil.rmtree(dirs['vertical'])
+    temp_dir.rename(dirs['vertical'])
+    print(f"{C['green']}✓ Resized vertical images{C['reset']}\n")
 
-    for image in sorted(image_dir.glob('*.png')):
-        dim = get_dimensions(image)
+    # Resize horizontal images
+    print(f"{C['blue']}Resizing horizontal images...{C['reset']}")
+    temp_dir = dirs['horizontal'].parent / f'temp_resize_{dirs["horizontal"].name}'
+    temp_dir.mkdir(exist_ok=True)
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        resized = resize_image(img, temp_dir / img.name, ImageConfig.MAX_HORIZONTAL_WIDTH, ImageConfig.MAX_HORIZONTAL_HEIGHT)
+        print(f"{C['dim']}  {'Resized' if resized else 'Copied'}: {img.name}{C['reset']}")
+    shutil.rmtree(dirs['horizontal'])
+    temp_dir.rename(dirs['horizontal'])
+    print(f"{C['green']}✓ Resized horizontal images{C['reset']}\n")
 
-        # Calculate centering offset within region
-        x_offset = region_x + ((region_width - dim.width) // 2)
-        y_offset = region_y + ((region_height - dim.height) // 2)
+    # Overlay vertical images centered in vertical region
+    print(f"{C['blue']}Adding vertical images to backgrounds...{C['reset']}")
+    for img in sorted(dirs['vertical'].glob('*.png')):
+        overlay_centered(img, resources / 'marble-background.png', dirs['export'] / img.name,
+                        ImageConfig.VERT_REGION_X, ImageConfig.VERT_REGION_Y,
+                        ImageConfig.VERT_REGION_WIDTH, ImageConfig.VERT_REGION_HEIGHT)
+        print(f"{C['dim']}  {img.name}{C['reset']}")
+    print(f"{C['green']}✓ Added vertical images{C['reset']}\n")
 
-        composite_image(image, background, output_dir / image.name, f'+{x_offset}+{y_offset}')
-        print(f"{C['dim']}  {image.name}{C['reset']}")
-
-    print(f"{C['green']}✓ Added all {label} to backgrounds{C['reset']}\n")
+    # Overlay horizontal images centered in horizontal region
+    print(f"{C['blue']}Adding horizontal images to backgrounds...{C['reset']}")
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        overlay_centered(img, dirs['export'] / img.name, dirs['export_w_horizontal'] / img.name,
+                        ImageConfig.HORIZONTAL_REGION_X, ImageConfig.HORIZONTAL_REGION_Y,
+                        ImageConfig.HORIZONTAL_REGION_WIDTH, ImageConfig.HORIZONTAL_REGION_HEIGHT)
+        print(f"{C['dim']}  {img.name}{C['reset']}")
+    print(f"{C['green']}✓ Added horizontal images{C['reset']}\n")
 
 
 def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Path, frame_path: Path):
@@ -339,7 +338,8 @@ def validate_custom_directory(custom_dir: Path) -> list[CustomImagePair]:
     if not custom_dir.is_dir():
         raise ValueError(f"Custom directory missing or not a directory: {custom_dir}")
 
-    files = [f for f in custom_dir.iterdir() if f.is_file()]
+    # Filter out hidden files and system files
+    files = [f for f in custom_dir.iterdir() if f.is_file() and not f.name.startswith('.')]
     if not files:
         raise ValueError(f"Custom directory is empty: {custom_dir}")
 
@@ -411,9 +411,7 @@ def find_hero_image(resources_dir: Path) -> Path | None:
 def create_hero_title_slide(hero_path: Path, resources_dir: Path, output_path: Path):
     """
     Create title slide with centered hero image.
-
-    Resizes hero to fit within MAX_HERO_WIDTH x MAX_HERO_HEIGHT,
-    then centers it on title_background_w_frame.png within the hero region.
+    Resizes hero to fit within max constraints, then centers it in the vertical region.
     """
     print(f"{C['blue']}Creating hero title slide...{C['reset']}")
 
@@ -421,28 +419,17 @@ def create_hero_title_slide(hero_path: Path, resources_dir: Path, output_path: P
     temp_hero_dir = Path.cwd() / 'temp_hero'
     temp_hero_dir.mkdir(exist_ok=True)
 
-    # Resize hero image using existing resize logic
+    # Resize hero image
     resized_hero = temp_hero_dir / 'hero_resized.png'
-    dim = get_dimensions(hero_path)
-    geometry = calculate_resize_geometry(dim, ImageConfig.MAX_HERO_WIDTH, ImageConfig.MAX_HERO_HEIGHT)
+    resized = resize_image(hero_path, resized_hero, ImageConfig.MAX_VERT_WIDTH, ImageConfig.MAX_VERT_HEIGHT)
+    status = "Resized hero image" if resized else "Hero image already correct size"
+    print(f"{C['dim']}  {status}{C['reset']}")
 
-    if geometry:
-        run(['convert', str(hero_path), '-geometry', geometry, str(resized_hero)])
-        print(f"{C['dim']}  Resized hero image{C['reset']}")
-    else:
-        shutil.copy2(hero_path, resized_hero)
-        print(f"{C['dim']}  Hero image already correct size{C['reset']}")
-
-    # Get dimensions of resized hero
-    hero_dim = get_dimensions(resized_hero)
-
-    # Calculate centering offset within hero region
-    x_offset = ImageConfig.HERO_REGION_X + ((ImageConfig.HERO_REGION_WIDTH - hero_dim.width) // 2)
-    y_offset = ImageConfig.HERO_REGION_Y + ((ImageConfig.HERO_REGION_HEIGHT - hero_dim.height) // 2)
-
-    # Composite hero onto title background with frame
+    # Overlay hero centered in vertical region
     title_bg = resources_dir / 'title_background_w_frame.png'
-    composite_image(resized_hero, title_bg, output_path, f'+{x_offset}+{y_offset}')
+    overlay_centered(resized_hero, title_bg, output_path,
+                     ImageConfig.VERT_REGION_X, ImageConfig.VERT_REGION_Y,
+                     ImageConfig.VERT_REGION_WIDTH, ImageConfig.VERT_REGION_HEIGHT)
 
     # Cleanup temp directory
     shutil.rmtree(temp_hero_dir)
@@ -468,18 +455,14 @@ def check_existing_files() -> bool:
     """
     base = Path.cwd()
 
-    # Check for directories and files (both old and new naming conventions)
+    # Check for all possible generated paths
     paths_to_check = [
-        # New naming convention
         base / 'images_vertical',
         base / 'images_horizontal',
         base / 'images_export',
-        base / 'images_resized_vertical',
-        base / 'images_resized_horizontal',
         base / 'images_export_w_horizontal',
         base / 'images_export_w_horizontal_and_frame',
         base / 'images_export_final',
-        # Other files
         base / 'temp_hero',
         base / 'grid.png',
         base / 'grid_temp.png',
@@ -488,12 +471,14 @@ def check_existing_files() -> bool:
         base / 'booster_art_urls.txt',
     ]
 
+    # Add temp resize directories (dynamically generated names)
+    paths_to_check.extend([p for p in base.glob('temp_resize_*') if p.is_dir()])
+
     existing = [p for p in paths_to_check if p.exists()]
 
     if not existing:
         return True
 
-    # Found existing files - warn the user
     print(f"{C['yellow']}Warning: Found existing export files/directories:{C['reset']}")
     for path in existing:
         path_str = f"{path.name}/" if path.is_dir() else path.name
@@ -621,38 +606,10 @@ def main():
 
         # Fetch/load images based on mode
         if mode.mode == "CUSTOM":
-            # CUSTOM mode: load from custom directory
             load_custom_images(mode.custom_pairs, dirs['vertical'], dirs['horizontal'])
-
-            # Process custom images with specific resize and overlay logic
-            # Resize vertical images
-            resize_images_generic(
-                dirs['vertical'],
-                ImageConfig.MAX_CUSTOM_VERT_WIDTH,
-                ImageConfig.MAX_CUSTOM_VERT_HEIGHT,
-                "vertical"
-            )
-
-            # Resize horizontal images
-            resize_horizontal_images(dirs['horizontal'])
-
-            # Overlay vertical images centered in custom region
-            overlay_images_centered_in_region(
-                dirs['vertical'],
-                resources / 'marble-background.png',
-                dirs['export'],
-                ImageConfig.CUSTOM_VERT_REGION_X,
-                ImageConfig.CUSTOM_VERT_REGION_Y,
-                ImageConfig.CUSTOM_VERT_REGION_WIDTH,
-                ImageConfig.CUSTOM_VERT_REGION_HEIGHT,
-                "vertical images"
-            )
-
-            # Overlay horizontal images using horizontal centering logic
-            overlay_horizontal_on_backgrounds(dirs['horizontal'], dirs['export'], dirs['export_w_horizontal'])
+            process_custom_images(dirs, resources)
 
         elif mode.mode == "SCRY":
-            # SCRY mode: fetch MTG cards from Scryfall
             card_urls = get_scryfall_urls(mode.query, 'png')
             print(f"{C['green']}✓ Found {len(card_urls)} cards{C['reset']}\n")
 
@@ -661,24 +618,12 @@ def main():
 
             download_images(card_urls, dirs['vertical'], 'card')
             download_images(art_urls, dirs['horizontal'], 'art')
+            process_mtg_images(dirs, resources)
 
-            # Process MTG card images
-            resize_horizontal_images(dirs['horizontal'])
-            overlay_cards_on_backgrounds(dirs['vertical'], dirs['export'], resources / 'marble-background.png')
-            overlay_horizontal_on_backgrounds(dirs['horizontal'], dirs['export'], dirs['export_w_horizontal'])
-
-        else:
-            # BOOST mode: use pre-fetched MTG card URLs
-            card_urls = mode.card_urls
-            art_urls = mode.art_urls
-
-            download_images(card_urls, dirs['vertical'], 'card')
-            download_images(art_urls, dirs['horizontal'], 'art')
-
-            # Process MTG card images
-            resize_horizontal_images(dirs['horizontal'])
-            overlay_cards_on_backgrounds(dirs['vertical'], dirs['export'], resources / 'marble-background.png')
-            overlay_horizontal_on_backgrounds(dirs['horizontal'], dirs['export'], dirs['export_w_horizontal'])
+        else:  # BOOST mode
+            download_images(mode.card_urls, dirs['vertical'], 'card')
+            download_images(mode.art_urls, dirs['horizontal'], 'art')
+            process_mtg_images(dirs, resources)
         add_frames_and_transparency(
             dirs['export_w_horizontal'],
             dirs['export_w_frame'],
