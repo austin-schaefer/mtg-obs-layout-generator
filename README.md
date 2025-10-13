@@ -51,6 +51,16 @@ An automated tool for creating custom OBS layouts and card grids for Magic: The 
 - **Card grids**: Montage arrangements of multiple cards for deck discussions or set overviews
 - **Streaming-ready graphics**: Pre-positioned transparency holes for webcam/chat overlays
 
+## Hero image (optional)
+
+Add a custom image to the first and last title slides:
+
+1. Place an image named `hero.jpg`, `hero.png`, `hero.jpeg`, or `hero.gif` in `/resources/`
+2. When running the script, answer `y` to the hero image prompt
+3. The hero image will be resized (max 850×1250px) and centered on the title slides
+
+Without a hero image, the default title background is used.
+
 ## Search query examples
 
 - `set:neo` - All cards from Kamigawa: Neon Dynasty
