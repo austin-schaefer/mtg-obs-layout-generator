@@ -22,14 +22,14 @@ class ImageConfig:
 
     # === Horizontal Image Settings ===
     # Horizontal images are wide/landscape orientation (MTG card art, custom horizontal images)
-    MAX_ART_WIDTH = 1142
-    MAX_ART_HEIGHT = 920
+    MAX_HORIZONTAL_WIDTH = 1142
+    MAX_HORIZONTAL_HEIGHT = 920
 
     # Horizontal image centering calculations (dynamic positioning on backgrounds)
-    ART_H_BASE = 1000
-    ART_H_RANGE = 1494
-    ART_V_BASE = 70
-    ART_V_RANGE = 940
+    HORIZONTAL_H_BASE = 1000
+    HORIZONTAL_H_RANGE = 1494
+    HORIZONTAL_V_BASE = 70
+    HORIZONTAL_V_RANGE = 940
 
     # === Vertical Image Settings ===
     # Vertical images are tall/portrait orientation (MTG cards, custom vertical images)
@@ -150,8 +150,8 @@ def resize_horizontal_images(horizontal_dir: Path):
     """Resize horizontal images to fit within configured constraints."""
     return resize_images_generic(
         horizontal_dir,
-        ImageConfig.MAX_ART_WIDTH,
-        ImageConfig.MAX_ART_HEIGHT,
+        ImageConfig.MAX_HORIZONTAL_WIDTH,
+        ImageConfig.MAX_HORIZONTAL_HEIGHT,
         "horizontal"
     )
 
@@ -180,8 +180,8 @@ def overlay_horizontal_on_backgrounds(horizontal_dir: Path, base_dir: Path, outp
         dim = get_dimensions(image)
 
         # Calculate centering offsets
-        h_offset = ImageConfig.ART_H_BASE + ((ImageConfig.ART_H_RANGE - dim.width) // 2)
-        v_offset = ImageConfig.ART_V_BASE + ((ImageConfig.ART_V_RANGE - dim.height) // 2)
+        h_offset = ImageConfig.HORIZONTAL_H_BASE + ((ImageConfig.HORIZONTAL_H_RANGE - dim.width) // 2)
+        v_offset = ImageConfig.HORIZONTAL_V_BASE + ((ImageConfig.HORIZONTAL_V_RANGE - dim.height) // 2)
 
         composite_image(image, base_dir / image.name, output_dir / image.name, f'+{h_offset}+{v_offset}')
         print(f"{Color.DIM}  {image.name}{Color.RESET}")
