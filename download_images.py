@@ -65,15 +65,11 @@ class ImageConfig:
 
 
 # ANSI color codes
-class Color:
-    BLUE = '\033[34m'      # Standard blue
-    GREEN = '\033[32m'     # Standard green
-    YELLOW = '\033[33m'    # Standard yellow
-    RED = '\033[31m'       # Standard red
-    MAGENTA = '\033[35m'   # Standard magenta
-    BOLD = '\033[1m'
-    DIM = '\033[2m'
-    RESET = '\033[0m'
+C = {
+    'blue': '\033[34m', 'green': '\033[32m', 'yellow': '\033[33m',
+    'red': '\033[31m', 'magenta': '\033[35m', 'bold': '\033[1m',
+    'dim': '\033[2m', 'reset': '\033[0m'
+}
 
 
 @dataclass
@@ -107,15 +103,15 @@ def get_scryfall_urls(query: str, image_type: str) -> list[str]:
 
 def download_images(urls: list[str], output_dir: Path, label: str):
     """Download images with rate limiting."""
-    print(f"{Color.BLUE}Downloading {len(urls)} {label} images...{Color.RESET}")
+    print(f"{C['blue']}Downloading {len(urls)} {label} images...{C['reset']}")
 
     for i, url in enumerate(urls, 1):
         time.sleep(ImageConfig.API_DELAY)  # Scryfall API rate limiting
         filename = f"{i:05d}.png"
         urlretrieve(url, output_dir / filename)
-        print(f"{Color.DIM}  {i}/{len(urls)}: {filename}{Color.RESET}")
+        print(f"{C['dim']}  {i}/{len(urls)}: {filename}{C['reset']}")
 
-    print(f"{Color.GREEN}✓ Downloaded all {label} images{Color.RESET}\n")
+    print(f"{C['green']}✓ Downloaded all {label} images{C['reset']}\n")
 
 
 def get_dimensions(image: Path) -> Dimensions:
@@ -163,18 +159,18 @@ def composite_image(foreground: Path, background: Path, output: Path, geometry: 
 
 def overlay_cards_on_backgrounds(card_dir: Path, export_dir: Path, background: Path):
     """Overlay card images onto marble backgrounds."""
-    print(f"{Color.BLUE}Adding cards to backgrounds...{Color.RESET}")
+    print(f"{C['blue']}Adding cards to backgrounds...{C['reset']}")
 
     for card in sorted(card_dir.glob('*.png')):
         composite_image(card, background, export_dir / card.name, ImageConfig.CARD_OFFSET)
-        print(f"{Color.DIM}  {card.name}{Color.RESET}")
+        print(f"{C['dim']}  {card.name}{C['reset']}")
 
-    print(f"{Color.GREEN}✓ Added all cards to backgrounds{Color.RESET}\n")
+    print(f"{C['green']}✓ Added all cards to backgrounds{C['reset']}\n")
 
 
 def overlay_horizontal_on_backgrounds(horizontal_dir: Path, base_dir: Path, output_dir: Path):
     """Overlay horizontal images onto backgrounds with dynamic centering."""
-    print(f"{Color.BLUE}Adding horizontal images to backgrounds...{Color.RESET}")
+    print(f"{C['blue']}Adding horizontal images to backgrounds...{C['reset']}")
 
     for image in sorted(horizontal_dir.glob('*.png')):
         dim = get_dimensions(image)
@@ -184,9 +180,9 @@ def overlay_horizontal_on_backgrounds(horizontal_dir: Path, base_dir: Path, outp
         v_offset = ImageConfig.HORIZONTAL_V_BASE + ((ImageConfig.HORIZONTAL_V_RANGE - dim.height) // 2)
 
         composite_image(image, base_dir / image.name, output_dir / image.name, f'+{h_offset}+{v_offset}')
-        print(f"{Color.DIM}  {image.name}{Color.RESET}")
+        print(f"{C['dim']}  {image.name}{C['reset']}")
 
-    print(f"{Color.GREEN}✓ Added all horizontal images to backgrounds{Color.RESET}\n")
+    print(f"{C['green']}✓ Added all horizontal images to backgrounds{C['reset']}\n")
 
 
 def resize_images_generic(
@@ -199,7 +195,7 @@ def resize_images_generic(
     Generic image resizing function.
     Returns path to directory containing resized images.
     """
-    print(f"{Color.BLUE}Resizing {label} images...{Color.RESET}")
+    print(f"{C['blue']}Resizing {label} images...{C['reset']}")
 
     temp_dir = input_dir.parent / f'images_resized_{label.replace(" ", "_").lower()}'
     temp_dir.mkdir(exist_ok=True)
@@ -214,14 +210,14 @@ def resize_images_generic(
 
         if geometry:
             run(['convert', str(image_file), '-geometry', geometry, str(output_file)])
-            print(f"{Color.DIM}  Resized {image_file.name}{Color.RESET}")
+            print(f"{C['dim']}  Resized {image_file.name}{C['reset']}")
         else:
             shutil.copy2(image_file, output_file)
-            print(f"{Color.DIM}  Copied {image_file.name} (no resize needed){Color.RESET}")
+            print(f"{C['dim']}  Copied {image_file.name} (no resize needed){C['reset']}")
 
     shutil.rmtree(input_dir)
     temp_dir.rename(input_dir)
-    print(f"{Color.GREEN}✓ Resized all {label} images{Color.RESET}\n")
+    print(f"{C['green']}✓ Resized all {label} images{C['reset']}\n")
 
     return input_dir
 
@@ -240,7 +236,7 @@ def overlay_images_centered_in_region(
     Generic function to overlay images centered within a specific region on a background.
     Used for both custom vertical images and hero images.
     """
-    print(f"{Color.BLUE}Adding {label} to backgrounds...{Color.RESET}")
+    print(f"{C['blue']}Adding {label} to backgrounds...{C['reset']}")
 
     for image in sorted(image_dir.glob('*.png')):
         dim = get_dimensions(image)
@@ -250,22 +246,22 @@ def overlay_images_centered_in_region(
         y_offset = region_y + ((region_height - dim.height) // 2)
 
         composite_image(image, background, output_dir / image.name, f'+{x_offset}+{y_offset}')
-        print(f"{Color.DIM}  {image.name}{Color.RESET}")
+        print(f"{C['dim']}  {image.name}{C['reset']}")
 
-    print(f"{Color.GREEN}✓ Added all {label} to backgrounds{Color.RESET}\n")
+    print(f"{C['green']}✓ Added all {label} to backgrounds{C['reset']}\n")
 
 
 def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Path, frame_path: Path):
     """Add host frames and transparency holes."""
     # Add frames
-    print(f"{Color.BLUE}Adding frames...{Color.RESET}")
+    print(f"{C['blue']}Adding frames...{C['reset']}")
     for image in sorted(input_dir.glob('*.png')):
         composite_image(frame_path, image, frame_dir / image.name, '+0+0')
-        print(f"{Color.DIM}  {image.name}{Color.RESET}")
-    print(f"{Color.GREEN}✓ Added all frames{Color.RESET}\n")
+        print(f"{C['dim']}  {image.name}{C['reset']}")
+    print(f"{C['green']}✓ Added all frames{C['reset']}\n")
 
     # Punch transparency holes
-    print(f"{Color.BLUE}Adding transparency...{Color.RESET}")
+    print(f"{C['blue']}Adding transparency...{C['reset']}")
     for image in sorted(frame_dir.glob('*.png')):
         run([
             'convert', str(image),
@@ -276,13 +272,13 @@ def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Pat
             '-alpha', 'off', '-compose', 'copy_opacity', '-composite',
             str(final_dir / image.name)
         ])
-        print(f"{Color.DIM}  {image.name}{Color.RESET}")
-    print(f"{Color.GREEN}✓ Added all transparency{Color.RESET}\n")
+        print(f"{C['dim']}  {image.name}{C['reset']}")
+    print(f"{C['green']}✓ Added all transparency{C['reset']}\n")
 
 
 def create_grid(vertical_dir: Path, grid_arrangement: str, title_background: Path, output: Path):
     """Create and composite the image grid from vertical images."""
-    print(f"{Color.BLUE}Creating grid...{Color.RESET}")
+    print(f"{C['blue']}Creating grid...{C['reset']}")
 
     # Create montage in vertical directory (montage only works well with relative paths)
     with working_directory(vertical_dir):
@@ -291,10 +287,10 @@ def create_grid(vertical_dir: Path, grid_arrangement: str, title_background: Pat
              '-geometry', '+10+40', '-background', 'none', *image_files, 'grid.png'])
 
     grid_path = vertical_dir / 'grid.png'
-    print(f"{Color.GREEN}✓ Created montage{Color.RESET}\n")
+    print(f"{C['green']}✓ Created montage{C['reset']}\n")
 
     # Resize grid if needed
-    print(f"{Color.BLUE}Resizing grid...{Color.RESET}")
+    print(f"{C['blue']}Resizing grid...{C['reset']}")
     dim = get_dimensions(grid_path)
     geometry = calculate_resize_geometry(dim, ImageConfig.MAX_GRID_WIDTH, ImageConfig.MAX_GRID_HEIGHT)
 
@@ -310,7 +306,7 @@ def create_grid(vertical_dir: Path, grid_arrangement: str, title_background: Pat
     if (output.parent / 'grid_temp.png').exists():
         (output.parent / 'grid_temp.png').unlink()
 
-    print(f"{Color.GREEN}✓ Final grid created{Color.RESET}\n")
+    print(f"{C['green']}✓ Final grid created{C['reset']}\n")
 
 
 def read_booster_urls() -> tuple[list[str], list[str]]:
@@ -443,7 +439,7 @@ def load_custom_images(pairs: list[CustomImagePair], vertical_dir: Path, horizon
     Converts images to PNG format and renames them sequentially (00001.png, 00002.png, etc.).
     Uses [0] notation to extract only the first frame from animated GIFs.
     """
-    print(f"{Color.BLUE}Loading {len(pairs)} custom image pairs...{Color.RESET}")
+    print(f"{C['blue']}Loading {len(pairs)} custom image pairs...{C['reset']}")
 
     for i, pair in enumerate(pairs, 1):
         output_filename = f"{i:05d}.png"
@@ -451,14 +447,14 @@ def load_custom_images(pairs: list[CustomImagePair], vertical_dir: Path, horizon
         # Convert and copy vertical image (use [0] to get only first frame if animated)
         vertical_output = vertical_dir / output_filename
         run(['convert', f'{str(pair.vertical_path)}[0]', str(vertical_output)])
-        print(f"{Color.DIM}  Loaded vertical: {pair.vertical_path.name} -> {output_filename}{Color.RESET}")
+        print(f"{C['dim']}  Loaded vertical: {pair.vertical_path.name} -> {output_filename}{C['reset']}")
 
         # Convert and copy horizontal image (use [0] to get only first frame if animated)
         horizontal_output = horizontal_dir / output_filename
         run(['convert', f'{str(pair.horizontal_path)}[0]', str(horizontal_output)])
-        print(f"{Color.DIM}  Loaded horizontal: {pair.horizontal_path.name} -> {output_filename}{Color.RESET}")
+        print(f"{C['dim']}  Loaded horizontal: {pair.horizontal_path.name} -> {output_filename}{C['reset']}")
 
-    print(f"{Color.GREEN}✓ Loaded all custom images{Color.RESET}\n")
+    print(f"{C['green']}✓ Loaded all custom images{C['reset']}\n")
 
 
 def find_hero_image(resources_dir: Path) -> Path | None:
@@ -480,7 +476,7 @@ def create_hero_title_slide(hero_path: Path, resources_dir: Path, output_path: P
     Resizes hero to fit within MAX_HERO_WIDTH x MAX_HERO_HEIGHT,
     then centers it on title_background_w_frame.png within the hero region.
     """
-    print(f"{Color.BLUE}Creating hero title slide...{Color.RESET}")
+    print(f"{C['blue']}Creating hero title slide...{C['reset']}")
 
     # Create temp directory for resized hero
     temp_hero_dir = Path.cwd() / 'temp_hero'
@@ -493,10 +489,10 @@ def create_hero_title_slide(hero_path: Path, resources_dir: Path, output_path: P
 
     if geometry:
         run(['convert', str(hero_path), '-geometry', geometry, str(resized_hero)])
-        print(f"{Color.DIM}  Resized hero image{Color.RESET}")
+        print(f"{C['dim']}  Resized hero image{C['reset']}")
     else:
         shutil.copy2(hero_path, resized_hero)
-        print(f"{Color.DIM}  Hero image already correct size{Color.RESET}")
+        print(f"{C['dim']}  Hero image already correct size{C['reset']}")
 
     # Get dimensions of resized hero
     hero_dim = get_dimensions(resized_hero)
@@ -512,7 +508,7 @@ def create_hero_title_slide(hero_path: Path, resources_dir: Path, output_path: P
     # Cleanup temp directory
     shutil.rmtree(temp_hero_dir)
 
-    print(f"{Color.GREEN}✓ Created hero title slide{Color.RESET}\n")
+    print(f"{C['green']}✓ Created hero title slide{C['reset']}\n")
 
 
 @dataclass
@@ -559,56 +555,56 @@ def check_existing_files() -> bool:
         return True
 
     # Found existing files - warn the user
-    print(f"{Color.YELLOW}Warning: Found existing export files/directories:{Color.RESET}")
+    print(f"{C['yellow']}Warning: Found existing export files/directories:{C['reset']}")
     for path in existing:
         path_str = f"{path.name}/" if path.is_dir() else path.name
-        print(f"{Color.DIM}  {path_str}{Color.RESET}")
+        print(f"{C['dim']}  {path_str}{C['reset']}")
 
     print()
-    response = input(f"{Color.BOLD}{Color.MAGENTA}> Continue anyway? (y/n): {Color.RESET}").strip().lower()
+    response = input(f"{C['bold']}{C['magenta']}> Continue anyway? (y/n): {C['reset']}").strip().lower()
 
     if response == 'y':
         print()
         return True
     else:
-        print(f"\n{Color.YELLOW}Exiting. Run './cleanup.py' to remove existing files.{Color.RESET}")
+        print(f"\n{C['yellow']}Exiting. Run './cleanup.py' to remove existing files.{C['reset']}")
         return False
 
 
 def get_user_input_mode() -> InputMode:
     """Get user input and determine processing mode."""
     input_type = input(
-        f"{Color.BOLD}{Color.MAGENTA}> Input type? "
-        f"Enter SCRYFALL for Scryfall search, BOOSTER for booster pack, or CUSTOM for custom images: {Color.RESET}"
+        f"{C['bold']}{C['magenta']}> Input type? "
+        f"Enter SCRYFALL for Scryfall search, BOOSTER for booster pack, or CUSTOM for custom images: {C['reset']}"
     ).strip().upper()
 
     # Handle CUSTOM mode
     if input_type == "CUSTOM":
         grid_arrangement = input(
-            f"{Color.BOLD}{Color.MAGENTA}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {Color.RESET}"
+            f"{C['bold']}{C['magenta']}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {C['reset']}"
         ).strip()
         print()
 
         # Validate custom directory
         custom_dir = Path.cwd() / 'custom'
-        print(f"{Color.BLUE}Validating custom directory...{Color.RESET}")
+        print(f"{C['blue']}Validating custom directory...{C['reset']}")
 
         try:
             pairs = validate_custom_directory(custom_dir)
-            print(f"{Color.GREEN}✓ Found {len(pairs)} valid image pairs{Color.RESET}\n")
+            print(f"{C['green']}✓ Found {len(pairs)} valid image pairs{C['reset']}\n")
             return InputMode(mode="CUSTOM", grid_arrangement=grid_arrangement, custom_pairs=pairs)
         except ValueError as e:
-            print(f"{Color.RED}ERROR: Custom directory validation failed:{Color.RESET}")
-            print(f"{Color.YELLOW}{e}{Color.RESET}")
+            print(f"{C['red']}ERROR: Custom directory validation failed:{C['reset']}")
+            print(f"{C['yellow']}{e}{C['reset']}")
             sys.exit(1)
 
     # Handle BOOST/BOOSTER mode
     elif input_type in ("BOOST", "BOOSTER"):
-        set_code = input(f"{Color.BOLD}{Color.MAGENTA}> Enter set code: {Color.RESET}").strip().upper()
+        set_code = input(f"{C['bold']}{C['magenta']}> Enter set code: {C['reset']}").strip().upper()
         print()
 
         # Call booster_builder.py to build the booster
-        print(f"{Color.YELLOW}Building booster pack...{Color.RESET}\n")
+        print(f"{C['yellow']}Building booster pack...{C['reset']}\n")
         result = run(['python3', 'booster_builder.py', set_code], capture=True)
 
         # Parse output to get layout
@@ -627,9 +623,9 @@ def get_user_input_mode() -> InputMode:
 
     # Handle SCRY/SCRYFALL mode
     elif input_type in ("SCRY", "SCRYFALL"):
-        query = input(f"{Color.BOLD}{Color.MAGENTA}> Enter Scryfall search query: {Color.RESET}").strip()
+        query = input(f"{C['bold']}{C['magenta']}> Enter Scryfall search query: {C['reset']}").strip()
         grid_arrangement = input(
-            f"{Color.BOLD}{Color.MAGENTA}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {Color.RESET}"
+            f"{C['bold']}{C['magenta']}> Enter grid arrangement (e.g. 8x0, 9x0, etc.): {C['reset']}"
         ).strip()
         print()
         return InputMode(mode="SCRY", grid_arrangement=grid_arrangement, query=query)
@@ -650,7 +646,7 @@ def main():
         mode = get_user_input_mode()
 
         # Check if user wants a hero image
-        hero_response = input(f"{Color.BOLD}{Color.MAGENTA}> Do you want a hero image on the title slide? (y/n): {Color.RESET}").strip().lower()
+        hero_response = input(f"{C['bold']}{C['magenta']}> Do you want a hero image on the title slide? (y/n): {C['reset']}").strip().lower()
         print()
 
         hero_path = None
@@ -660,11 +656,11 @@ def main():
             hero_path = find_hero_image(resources)
 
             if hero_path is None:
-                print(f"{Color.RED}ERROR: No hero image found in /resources/{Color.RESET}")
-                print(f"{Color.YELLOW}Please add a file named 'hero' with extension .jpg, .jpeg, .png, or .gif{Color.RESET}")
+                print(f"{C['red']}ERROR: No hero image found in /resources/{C['reset']}")
+                print(f"{C['yellow']}Please add a file named 'hero' with extension .jpg, .jpeg, .png, or .gif{C['reset']}")
                 sys.exit(1)
 
-            print(f"{Color.GREEN}✓ Found hero image: {hero_path.name}{Color.RESET}\n")
+            print(f"{C['green']}✓ Found hero image: {hero_path.name}{C['reset']}\n")
 
         # Setup paths
         base = Path.cwd()
@@ -719,10 +715,10 @@ def main():
         elif mode.mode == "SCRY":
             # SCRY mode: fetch MTG cards from Scryfall
             card_urls = get_scryfall_urls(mode.query, 'png')
-            print(f"{Color.GREEN}✓ Found {len(card_urls)} cards{Color.RESET}\n")
+            print(f"{C['green']}✓ Found {len(card_urls)} cards{C['reset']}\n")
 
             art_urls = get_scryfall_urls(mode.query, 'art_crop')
-            print(f"{Color.GREEN}✓ Found {len(art_urls)} artworks{Color.RESET}\n")
+            print(f"{C['green']}✓ Found {len(art_urls)} artworks{C['reset']}\n")
 
             download_images(card_urls, dirs['vertical'], 'card')
             download_images(art_urls, dirs['horizontal'], 'art')
@@ -754,7 +750,7 @@ def main():
         # Cleanup temp directories
         for d in [dirs['export'], dirs['export_w_horizontal'], dirs['export_w_frame']]:
             shutil.rmtree(d)
-        print(f"{Color.GREEN}✓ Cleaned up temporary directories{Color.RESET}\n")
+        print(f"{C['green']}✓ Cleaned up temporary directories{C['reset']}\n")
 
         # Create title slides (first and last slides)
         if hero_path:
@@ -769,12 +765,12 @@ def main():
             # Cleanup temp file
             hero_title_slide.unlink()
 
-            print(f"{Color.GREEN}✓ Added hero title slides to final directory (first and last slides){Color.RESET}\n")
+            print(f"{C['green']}✓ Added hero title slides to final directory (first and last slides){C['reset']}\n")
         else:
             # Copy plain title background with frame
             shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '00000.png')
             shutil.copy2(resources / 'title_background_w_frame.png', dirs['final'] / '99999.png')
-            print(f"{Color.GREEN}✓ Added title background to final directory (first and last slides){Color.RESET}\n")
+            print(f"{C['green']}✓ Added title background to final directory (first and last slides){C['reset']}\n")
 
         # Create final grid from vertical images
         create_grid(dirs['vertical'], mode.grid_arrangement, resources / 'title_background.png', base / 'grid.png')
@@ -785,16 +781,16 @@ def main():
                 if f.exists():
                     f.unlink()
 
-        print(f"{Color.BOLD}{Color.GREEN}Finished! Check /images_export_final/ for output.{Color.RESET}")
+        print(f"{C['bold']}{C['green']}Finished! Check /images_export_final/ for output.{C['reset']}")
 
     except KeyboardInterrupt:
-        print(f"\n{Color.YELLOW}Interrupted by user{Color.RESET}")
+        print(f"\n{C['yellow']}Interrupted by user{C['reset']}")
         sys.exit(1)
     except subprocess.CalledProcessError as e:
-        print(f"\n{Color.RED}ERROR: Command failed: {' '.join(e.cmd)}{Color.RESET}")
+        print(f"\n{C['red']}ERROR: Command failed: {' '.join(e.cmd)}{C['reset']}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{Color.RED}ERROR: {e}{Color.RESET}")
+        print(f"\n{C['red']}ERROR: {e}{C['reset']}")
         sys.exit(1)
 
 
