@@ -544,12 +544,6 @@ def check_existing_files() -> bool:
         base / 'images_export_w_horizontal',
         base / 'images_export_w_horizontal_and_frame',
         base / 'images_export_final',
-        # Old naming convention (for backwards compatibility)
-        base / 'images_card',
-        base / 'images_art',
-        base / 'images_resized_art',
-        base / 'images_export_w_art',
-        base / 'images_export_w_art_and_frame',
         # Other files
         base / 'temp_hero',
         base / 'grid.png',
