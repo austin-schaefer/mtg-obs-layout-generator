@@ -333,104 +333,43 @@ class CustomImagePair:
 
 
 def validate_custom_directory(custom_dir: Path) -> list[CustomImagePair]:
-    """
-    Validate custom directory and return sorted list of image pairs.
-
-    Validates:
-    - Directory exists
-    - All files are images (png, jpg, jpeg, gif)
-    - All files follow naming convention (number[vh].extension, e.g., 1v.png, 2h.jpg)
-    - Each number has both v and h variants
-
-    Returns sorted list of CustomImagePair objects.
-    Raises ValueError with detailed error message if validation fails.
-    """
+    """Validate custom directory and return sorted image pairs (format: number[vh].ext)."""
     import re
 
-    # Check directory exists
-    if not custom_dir.exists():
-        raise ValueError(f"Custom directory does not exist: {custom_dir}")
-
     if not custom_dir.is_dir():
-        raise ValueError(f"Path exists but is not a directory: {custom_dir}")
+        raise ValueError(f"Custom directory missing or not a directory: {custom_dir}")
 
-    # Get all files in directory
-    all_files = list(custom_dir.iterdir())
-
-    if not all_files:
+    files = [f for f in custom_dir.iterdir() if f.is_file()]
+    if not files:
         raise ValueError(f"Custom directory is empty: {custom_dir}")
 
-    # Valid image extensions
-    valid_extensions = {'.png', '.jpg', '.jpeg', '.gif'}
+    pattern = re.compile(r'^(\d+)(v|h)\.(png|jpg|jpeg|gif)$', re.IGNORECASE)
+    vertical, horizontal, invalid = {}, {}, []
 
-    # Pattern for valid filename: number[vh].extension (e.g., 1v.png, 2h.jpg)
-    filename_pattern = re.compile(r'^(\d+)(v|h)\.(png|jpg|jpeg|gif)$', re.IGNORECASE)
-
-    # Validate each file
-    vertical_images = {}  # number -> path
-    horizontal_images = {}  # number -> path
-    invalid_files = []
-
-    for file_path in all_files:
-        # Skip directories
-        if file_path.is_dir():
-            invalid_files.append((file_path.name, "is a directory"))
+    for f in files:
+        if not (match := pattern.match(f.name)):
+            invalid.append((f.name, "must be number[vh].ext (e.g., 1v.png)"))
             continue
 
-        filename = file_path.name
+        num, orient = int(match[1]), match[2].lower()
+        target = vertical if orient == 'v' else horizontal
 
-        # Check if it's an image file
-        if file_path.suffix.lower() not in valid_extensions:
-            invalid_files.append((filename, f"invalid extension (must be {', '.join(valid_extensions)})"))
-            continue
+        if num in target:
+            raise ValueError(f"Duplicate {orient} image for {num}: {f.name} and {target[num].name}")
+        target[num] = f
 
-        # Check if filename matches pattern
-        match = filename_pattern.match(filename)
-        if not match:
-            invalid_files.append((filename, "invalid naming pattern (must be: number[vh].extension, e.g., 1v.png or 2h.jpg)"))
-            continue
+    if invalid:
+        errors = '\n'.join(f"  - {name}: {reason}" for name, reason in invalid)
+        raise ValueError(f"Invalid files:\n{errors}")
 
-        number = int(match.group(1))
-        orientation = match.group(2).lower()
+    all_nums = set(vertical) | set(horizontal)
+    missing = [f"  - {n}: missing {('v' if n not in vertical else 'h')} image"
+               for n in sorted(all_nums) if n not in vertical or n not in horizontal]
 
-        # Store in appropriate dictionary
-        if orientation == 'v':
-            if number in vertical_images:
-                raise ValueError(f"Duplicate vertical image for number {number}: {filename} and {vertical_images[number].name}")
-            vertical_images[number] = file_path
-        else:  # orientation == 'h'
-            if number in horizontal_images:
-                raise ValueError(f"Duplicate horizontal image for number {number}: {filename} and {horizontal_images[number].name}")
-            horizontal_images[number] = file_path
+    if missing:
+        raise ValueError(f"Incomplete pairs:\n{'\n'.join(missing)}")
 
-    # Report invalid files if any
-    if invalid_files:
-        error_msg = "Invalid files found in custom directory:\n"
-        for filename, reason in invalid_files:
-            error_msg += f"  - {filename}: {reason}\n"
-        raise ValueError(error_msg.rstrip())
-
-    # Check that each number has both v and h variants
-    all_numbers = set(vertical_images.keys()) | set(horizontal_images.keys())
-    missing_pairs = []
-
-    for num in sorted(all_numbers):
-        if num not in vertical_images:
-            missing_pairs.append(f"  - {num}: missing vertical image ({num}v.*)")
-        if num not in horizontal_images:
-            missing_pairs.append(f"  - {num}: missing horizontal image ({num}h.*)")
-
-    if missing_pairs:
-        error_msg = "Incomplete image pairs found:\n" + "\n".join(missing_pairs)
-        raise ValueError(error_msg)
-
-    # Create sorted list of pairs
-    pairs = [
-        CustomImagePair(num, vertical_images[num], horizontal_images[num])
-        for num in sorted(all_numbers)
-    ]
-
-    return pairs
+    return [CustomImagePair(n, vertical[n], horizontal[n]) for n in sorted(all_nums)]
 
 
 def load_custom_images(pairs: list[CustomImagePair], vertical_dir: Path, horizontal_dir: Path):
