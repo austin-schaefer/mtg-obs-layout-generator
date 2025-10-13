@@ -185,130 +185,77 @@ def composite_image(foreground: Path, background: Path, output: Path, geometry: 
     run(['magick', 'composite', '-geometry', geometry, str(foreground), str(background), str(output)])
 
 
-def resize_directory(input_dir: Path, max_width: int, max_height: int, label: str):
-    """Resize all images in a directory in-place."""
-    print(f"{C['blue']}Resizing {label} images...{C['reset']}")
-
-    temp_dir = input_dir.parent / f'temp_resize_{input_dir.name}'
-    temp_dir.mkdir(exist_ok=True)
-
-    for image_file in sorted(input_dir.glob('*.png')):
-        resized = resize_image(image_file, temp_dir / image_file.name, max_width, max_height)
-        status = "Resized" if resized else "Copied (no resize needed)"
-        print(f"{C['dim']}  {status}: {image_file.name}{C['reset']}")
-
-    shutil.rmtree(input_dir)
-    temp_dir.rename(input_dir)
-    print(f"{C['green']}✓ Resized all {label} images{C['reset']}\n")
-
-
-def overlay_directory_centered(
-    image_dir: Path,
-    background: Path,
-    output_dir: Path,
-    region_x: int,
-    region_y: int,
-    region_width: int,
-    region_height: int,
-    label: str
-):
-    """Overlay all images in a directory, centered within a region on the background."""
-    print(f"{C['blue']}Adding {label} to backgrounds...{C['reset']}")
-
-    for image in sorted(image_dir.glob('*.png')):
-        overlay_centered(image, background, output_dir / image.name, region_x, region_y, region_width, region_height)
-        print(f"{C['dim']}  {image.name}{C['reset']}")
-
-    print(f"{C['green']}✓ Added all {label} to backgrounds{C['reset']}\n")
-
-
-def overlay_directory_on_existing(
-    image_dir: Path,
-    base_dir: Path,
-    output_dir: Path,
-    region_x: int,
-    region_y: int,
-    region_width: int,
-    region_height: int,
-    label: str
-):
-    """Overlay images centered in region onto existing background images (matched by filename)."""
-    print(f"{C['blue']}Adding {label} to backgrounds...{C['reset']}")
-
-    for image in sorted(image_dir.glob('*.png')):
-        overlay_centered(image, base_dir / image.name, output_dir / image.name, region_x, region_y, region_width, region_height)
-        print(f"{C['dim']}  {image.name}{C['reset']}")
-
-    print(f"{C['green']}✓ Added all {label} to backgrounds{C['reset']}\n")
-
-
-def overlay_directory_at_position(
-    image_dir: Path,
-    background: Path,
-    output_dir: Path,
-    geometry: str,
-    label: str
-):
-    """Overlay all images in a directory at a fixed position on the background."""
-    print(f"{C['blue']}Adding {label} to backgrounds...{C['reset']}")
-
-    for image in sorted(image_dir.glob('*.png')):
-        composite_image(image, background, output_dir / image.name, geometry)
-        print(f"{C['dim']}  {image.name}{C['reset']}")
-
-    print(f"{C['green']}✓ Added all {label} to backgrounds{C['reset']}\n")
-
-
 def process_mtg_images(dirs: dict, resources: Path):
     """Process MTG card and art images through the full pipeline."""
     # Resize art images
-    resize_directory(dirs['horizontal'], ImageConfig.MAX_HORIZONTAL_WIDTH, ImageConfig.MAX_HORIZONTAL_HEIGHT, "art")
+    print(f"{C['blue']}Resizing art images...{C['reset']}")
+    temp_dir = dirs['horizontal'].parent / f'temp_resize_{dirs["horizontal"].name}'
+    temp_dir.mkdir(exist_ok=True)
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        resized = resize_image(img, temp_dir / img.name, ImageConfig.MAX_HORIZONTAL_WIDTH, ImageConfig.MAX_HORIZONTAL_HEIGHT)
+        print(f"{C['dim']}  {'Resized' if resized else 'Copied'}: {img.name}{C['reset']}")
+    shutil.rmtree(dirs['horizontal'])
+    temp_dir.rename(dirs['horizontal'])
+    print(f"{C['green']}✓ Resized all art images{C['reset']}\n")
 
-    # Overlay cards at fixed position
-    overlay_directory_at_position(dirs['vertical'], resources / 'marble-background.png', dirs['export'], ImageConfig.CARD_OFFSET, "cards")
+    # Overlay cards at fixed position on marble background
+    print(f"{C['blue']}Adding cards to backgrounds...{C['reset']}")
+    for card in sorted(dirs['vertical'].glob('*.png')):
+        composite_image(card, resources / 'marble-background.png', dirs['export'] / card.name, ImageConfig.CARD_OFFSET)
+        print(f"{C['dim']}  {card.name}{C['reset']}")
+    print(f"{C['green']}✓ Added all cards{C['reset']}\n")
 
-    # Overlay art centered in horizontal region
-    overlay_directory_on_existing(
-        dirs['horizontal'],
-        dirs['export'],
-        dirs['export_w_horizontal'],
-        ImageConfig.HORIZONTAL_H_BASE,
-        ImageConfig.HORIZONTAL_V_BASE,
-        ImageConfig.HORIZONTAL_H_RANGE,
-        ImageConfig.HORIZONTAL_V_RANGE,
-        "art"
-    )
+    # Overlay art centered in horizontal region on existing backgrounds
+    print(f"{C['blue']}Adding art to backgrounds...{C['reset']}")
+    for art in sorted(dirs['horizontal'].glob('*.png')):
+        overlay_centered(art, dirs['export'] / art.name, dirs['export_w_horizontal'] / art.name,
+                        ImageConfig.HORIZONTAL_H_BASE, ImageConfig.HORIZONTAL_V_BASE,
+                        ImageConfig.HORIZONTAL_H_RANGE, ImageConfig.HORIZONTAL_V_RANGE)
+        print(f"{C['dim']}  {art.name}{C['reset']}")
+    print(f"{C['green']}✓ Added all art{C['reset']}\n")
 
 
 def process_custom_images(dirs: dict, resources: Path):
     """Process custom vertical and horizontal images through the full pipeline."""
-    # Resize vertical and horizontal images
-    resize_directory(dirs['vertical'], ImageConfig.MAX_CUSTOM_VERT_WIDTH, ImageConfig.MAX_CUSTOM_VERT_HEIGHT, "vertical")
-    resize_directory(dirs['horizontal'], ImageConfig.MAX_HORIZONTAL_WIDTH, ImageConfig.MAX_HORIZONTAL_HEIGHT, "horizontal")
+    # Resize vertical images
+    print(f"{C['blue']}Resizing vertical images...{C['reset']}")
+    temp_dir = dirs['vertical'].parent / f'temp_resize_{dirs["vertical"].name}'
+    temp_dir.mkdir(exist_ok=True)
+    for img in sorted(dirs['vertical'].glob('*.png')):
+        resized = resize_image(img, temp_dir / img.name, ImageConfig.MAX_CUSTOM_VERT_WIDTH, ImageConfig.MAX_CUSTOM_VERT_HEIGHT)
+        print(f"{C['dim']}  {'Resized' if resized else 'Copied'}: {img.name}{C['reset']}")
+    shutil.rmtree(dirs['vertical'])
+    temp_dir.rename(dirs['vertical'])
+    print(f"{C['green']}✓ Resized all vertical images{C['reset']}\n")
 
-    # Overlay vertical images centered in custom region
-    overlay_directory_centered(
-        dirs['vertical'],
-        resources / 'marble-background.png',
-        dirs['export'],
-        ImageConfig.CUSTOM_VERT_REGION_X,
-        ImageConfig.CUSTOM_VERT_REGION_Y,
-        ImageConfig.CUSTOM_VERT_REGION_WIDTH,
-        ImageConfig.CUSTOM_VERT_REGION_HEIGHT,
-        "vertical images"
-    )
+    # Resize horizontal images
+    print(f"{C['blue']}Resizing horizontal images...{C['reset']}")
+    temp_dir = dirs['horizontal'].parent / f'temp_resize_{dirs["horizontal"].name}'
+    temp_dir.mkdir(exist_ok=True)
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        resized = resize_image(img, temp_dir / img.name, ImageConfig.MAX_HORIZONTAL_WIDTH, ImageConfig.MAX_HORIZONTAL_HEIGHT)
+        print(f"{C['dim']}  {'Resized' if resized else 'Copied'}: {img.name}{C['reset']}")
+    shutil.rmtree(dirs['horizontal'])
+    temp_dir.rename(dirs['horizontal'])
+    print(f"{C['green']}✓ Resized all horizontal images{C['reset']}\n")
 
-    # Overlay horizontal images centered in horizontal region
-    overlay_directory_on_existing(
-        dirs['horizontal'],
-        dirs['export'],
-        dirs['export_w_horizontal'],
-        ImageConfig.HORIZONTAL_H_BASE,
-        ImageConfig.HORIZONTAL_V_BASE,
-        ImageConfig.HORIZONTAL_H_RANGE,
-        ImageConfig.HORIZONTAL_V_RANGE,
-        "horizontal images"
-    )
+    # Overlay vertical images centered in custom region on marble background
+    print(f"{C['blue']}Adding vertical images to backgrounds...{C['reset']}")
+    for img in sorted(dirs['vertical'].glob('*.png')):
+        overlay_centered(img, resources / 'marble-background.png', dirs['export'] / img.name,
+                        ImageConfig.CUSTOM_VERT_REGION_X, ImageConfig.CUSTOM_VERT_REGION_Y,
+                        ImageConfig.CUSTOM_VERT_REGION_WIDTH, ImageConfig.CUSTOM_VERT_REGION_HEIGHT)
+        print(f"{C['dim']}  {img.name}{C['reset']}")
+    print(f"{C['green']}✓ Added all vertical images{C['reset']}\n")
+
+    # Overlay horizontal images centered in horizontal region on existing backgrounds
+    print(f"{C['blue']}Adding horizontal images to backgrounds...{C['reset']}")
+    for img in sorted(dirs['horizontal'].glob('*.png')):
+        overlay_centered(img, dirs['export'] / img.name, dirs['export_w_horizontal'] / img.name,
+                        ImageConfig.HORIZONTAL_H_BASE, ImageConfig.HORIZONTAL_V_BASE,
+                        ImageConfig.HORIZONTAL_H_RANGE, ImageConfig.HORIZONTAL_V_RANGE)
+        print(f"{C['dim']}  {img.name}{C['reset']}")
+    print(f"{C['green']}✓ Added all horizontal images{C['reset']}\n")
 
 
 def add_frames_and_transparency(input_dir: Path, frame_dir: Path, final_dir: Path, frame_path: Path):
