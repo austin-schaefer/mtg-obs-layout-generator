@@ -1,132 +1,165 @@
 # OBS Magic: The Gathering Layout Generator
 
-An automated tool for creating custom OBS layouts and card grids for Magic: The Gathering streaming and content creation. Used to create slideshows for the [Clock Spinning Podcast](https://www.youtube.com/@clockspinning).
+Creates OBS streaming layouts and card grids for Magic: The Gathering. Used by [Clock Spinning Podcast](https://www.youtube.com/@clockspinning).
 
-## Quick start
+## Quick Start
 
-### Option 1: Build from Scryfall search query
-
-1. **Generate card layouts:**
-   ```bash
-   ./download_images.py
-   ```
-
-2. **Choose SCRY mode** and enter your search query (e.g., `set:neo`, `type:creature`, `cmc:3`)
-
-3. **Choose grid arrangement** (e.g., `8x0`, `9x0`, `10x0`)
-
-4. **Find your files:**
-   - Individual card layouts: `images_export_final/`
-   - Card grid: `grid.png`
-
-### Option 2: Build a random booster pack
-
-1. **Generate booster pack layouts:**
-   ```bash
-   ./download_images.py
-   ```
-
-2. **Choose BOOST mode** and enter a set code (e.g., `NEO`, `ONS`, `TSP`)
-
-3. The script will:
-   - Automatically build a randomized booster pack for that set
-   - Handle set-specific booster structures (including mythics, timeshifted cards, etc.)
-   - Generate layouts in booster order (commons → uncommons → rares → mythics)
-   - Automatically determine the correct grid arrangement
-
-4. **Find your files:**
-   - Individual card layouts: `images_export_final/`
-   - Booster pack grid: `grid.png`
-
-### Cleanup
+Run the script and choose a mode:
 
 ```bash
-# Python version (recommended)
+./download_images.py
+```
+
+Three modes available:
+- **SCRY**: Fetch cards from Scryfall search query
+- **BOOST**: Generate a random booster pack
+- **CUSTOM**: Use your own images
+
+### SCRY Mode
+
+Fetch cards from Scryfall and create layouts.
+
+```bash
+./download_images.py
+```
+
+1. Choose `SCRYFALL` mode
+2. Enter search query (e.g., `set:neo`, `type:creature cmc:3`)
+3. Enter grid arrangement (e.g., `8x0`, `9x0`)
+
+See [Scryfall syntax](https://scryfall.com/docs/syntax) for search queries.
+
+**Example queries:**
+- `set:neo` - Kamigawa: Neon Dynasty cards
+- `type:creature cmc:3` - 3-mana creatures
+- `c:red type:instant` - Red instants
+- `rarity:mythic` - Mythic rares
+
+### BOOST Mode
+
+Generate a random booster pack for any set.
+
+```bash
+./download_images.py
+```
+
+1. Choose `BOOSTER` mode
+2. Enter set code (e.g., `NEO`, `ONS`, `TSP`)
+
+The script handles set-specific booster structures automatically:
+- Historical sets (Arabian Nights, The Dark, etc.)
+- Pre-mythic era (11/3/1 structure)
+- Modern sets (mythic rarity, 1/8 chance)
+- Special cards (Time Spiral timeshifted)
+
+Grid arrangement is determined automatically.
+
+### CUSTOM Mode
+
+Use your own images instead of MTG cards.
+
+```bash
+./download_images.py
+```
+
+1. Choose `CUSTOM` mode
+2. Enter grid arrangement (e.g., `8x0`, `9x0`)
+
+**Image requirements:**
+
+Create a `/custom/` directory with paired images:
+- Each pair needs a vertical (portrait) and horizontal (landscape) image
+- Naming format: `{number}v.{ext}` and `{number}h.{ext}`
+- Supported formats: `png`, `jpg`, `jpeg`, `gif`
+
+**Example:**
+```
+custom/
+  1v.png    # First vertical image
+  1h.jpg    # First horizontal image
+  2v.png    # Second vertical image
+  2h.gif    # Second horizontal image
+  3v.jpg    # Third vertical image
+  3h.png    # Third horizontal image
+```
+
+Both images in each pair are required. Numbers can be non-sequential but must match.
+
+## Output
+
+All modes produce:
+- **Individual layouts**: `images_export_final/` - Each image on marble background with frame and transparency
+- **Card grid**: `grid.png` - Montage of all images on title background
+
+## Hero Image (Optional)
+
+Add a custom image to first and last title slides:
+
+1. Add `hero.jpg`, `hero.png`, `hero.jpeg`, or `hero.gif` to `/resources/`
+2. Answer `y` when prompted for hero image
+
+The hero image is resized (max 850×1250px) and centered on title slides.
+
+## Grid Arrangements
+
+Format: `{width}x{height}`
+
+Examples:
+- `8x0` - 8 wide, auto height
+- `9x0` - 9 wide, auto height
+- `4x4` - 4×4 grid (16 images)
+- `5x3` - 5 wide, 3 tall (15 images)
+
+Use `0` for auto-calculated dimension.
+
+## Cleanup
+
+Remove generated files:
+
+```bash
 ./cleanup.py
 ```
 
-## What this tool creates
-
-- **Individual card layouts**: Each card composited with artwork on a marble background, ready for OBS overlay
-- **Card grids**: Montage arrangements of multiple cards for deck discussions or set overviews
-- **Streaming-ready graphics**: Pre-positioned transparency holes for webcam/chat overlays
-
-## Hero image (optional)
-
-Add a custom image to the first and last title slides:
-
-1. Place an image named `hero.jpg`, `hero.png`, `hero.jpeg`, or `hero.gif` in `/resources/`
-2. When running the script, answer `y` to the hero image prompt
-3. The hero image will be resized (max 850×1250px) and centered on the title slides
-
-Without a hero image, the default title background is used.
-
-## Search query examples
-
-- `set:neo` - All cards from Kamigawa: Neon Dynasty
-- `type:creature cmc:3` - All 3-mana creatures
-- `commander:legal` - All Commander-legal cards
-- `c:red type:instant` - All red instant spells
-- `rarity:mythic` - All mythic rare cards
-
-See [Scryfall syntax guide](https://scryfall.com/docs/syntax) for advanced queries.
-
-## Grid arrangements
-
-- `8x0` - 8 cards wide, auto height
-- `9x0` - 9 cards wide, auto height
-- `4x4` - 4x4 grid (16 cards)
-- `5x3` - 5 wide, 3 tall (15 cards)
-
 ## Requirements
 
-- Python 3 (required)
-- ImageMagick (`brew install imagemagick` on macOS)
-- wget (`brew install wget` on macOS)
-- Bash/Zsh shell (only required for bash version)
+- Python 3
+- ImageMagick: `brew install imagemagick`
+- wget: `brew install wget`
 
-## Booster pack builder
+## Standalone Booster Builder
 
-You can also use it standalone to see booster composition:
+View booster composition without generating images:
 
 ```bash
 ./booster_builder.py
 ```
 
-Enter a set code and it will build a randomized booster pack with the correct structure for that set, handling:
+Enter a set code to see card composition and rarity breakdown.
 
-- Historical sets with unique structures (Arabian Nights, The Dark, etc.)
-- Pre-mythic era sets (11/3/1 structure)
-- Modern sets with mythic rarity (1/8 chance)
-- Special cards (Time Spiral timeshifted sheet)
-- Proper card ordering (commons first, then uncommons, rares, mythics)
-
-## File structure
+## File Structure
 
 ```
 obs-layouts/
 ├── booster_builder.py          # Booster composition tool
 ├── cleanup.py                  # Cleanup utility
-├── download_images.py          # Main workflow script
+├── download_images.py          # Main script
 ├── scry                        # Scryfall API client
 ├── resources/                  # Background assets
-├── [generated dirs]            # Created during processing
-└─┬ legacy_bash_scripts/        # Bash scripts that the Python ones are based on
-  ├── booster-builder-bash.sh   # Booster composition tool (Bash)
-  ├── cleanup.sh                # Cleanup utility (Bash)
-  └── download_images.sh        # Main workflow script (Bash)   
+└── legacy_bash_scripts/        # Original bash implementations
 ```
 
-The scripts were originally human-written in Bash; the Python versions are Claude Code because Bash was getting brittle A.F.
+The Python scripts replaced brittle bash implementations. Bash versions preserved in `legacy_bash_scripts/` for reference.
 
 ## Troubleshooting
 
-**"Command not found" errors**: Install missing dependencies (ImageMagick, wget, Python 3)
+**"Command not found"**: Install missing dependencies (ImageMagick, wget, Python 3)
 
-## Licensing
+**Custom directory validation errors**: Ensure all numbered pairs have both `v` and `h` images with matching numbers
 
-This repository's code is MIT-licensed (copyright 2025 Austin Schaefer). See [LICENSE](LICENSE) for full text.
+## License
 
-**Exception**: All images and assets in the `/resources/` directory are all rights reserved and may not be copied, modified, or distributed without permission.
+Code: MIT License (Copyright 2025 Austin Schaefer). See [LICENSE](LICENSE).
 
-This repository bundles the [scrycall](https://github.com/0xdanelia/scrycall) utility as a binary for convenience. Scrycall is MIT-licensed. 
+Assets in `/resources/`: All rights reserved. May not be copied, modified, or distributed without permission.
+
+Bundles [scrycall](https://github.com/0xdanelia/scrycall) (MIT licensed) for convenience.
