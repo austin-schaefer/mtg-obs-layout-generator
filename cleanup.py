@@ -23,15 +23,24 @@ def main():
     """Remove all generated files and directories."""
     base = Path.cwd()
 
-    # Directories to remove
+    # Directories to remove (both old and new naming conventions)
     dirs_to_remove = [
+        # New naming convention
+        'images_vertical',
+        'images_horizontal',
+        'images_export',
+        'images_resized_vertical',
+        'images_resized_horizontal',
+        'images_export_w_horizontal',
+        'images_export_w_horizontal_and_frame',
+        'images_export_final',
+        # Old naming convention (for backwards compatibility)
         'images_card',
         'images_art',
-        'images_export',
         'images_resized_art',
         'images_export_w_art',
         'images_export_w_art_and_frame',
-        'images_export_final',
+        # Other temp directories
         'temp_hero',
     ]
 
