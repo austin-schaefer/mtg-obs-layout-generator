@@ -367,7 +367,7 @@ def validate_custom_directory(custom_dir: Path) -> list[CustomImagePair]:
                for n in sorted(all_nums) if n not in vertical or n not in horizontal]
 
     if missing:
-        raise ValueError(f"Incomplete pairs:\n{'\n'.join(missing)}")
+        raise ValueError("Incomplete pairs:\n" + "\n".join(missing))
 
     return [CustomImagePair(n, vertical[n], horizontal[n]) for n in sorted(all_nums)]
 
