@@ -5,11 +5,9 @@ description: "Keep this PUBLIC repo safe for public consumption. Use before ever
 
 # Public-repo safety
 
-This repository (`austin-schaefer/mtg-obs-layout-generator`) is **public and stays
-public**. Unlike a private project, public-repo hardening *is* in scope. Everything
-committed or published — code, branch names, commit messages, issue/PR titles and
-bodies, generated files — is world-readable forever (git history + forks + mirrors
-survive deletion). Treat every action as a publication.
+This repository is public. Everything you commit or publish — code, branch names,
+commit messages, issue/PR titles and bodies, generated files — is world-readable.
+Before any commit, push, branch, PR, or issue, make sure it's safe for anyone to see.
 
 ## Pre-commit / pre-push checklist
 

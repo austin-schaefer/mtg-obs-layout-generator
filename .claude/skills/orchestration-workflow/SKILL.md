@@ -18,7 +18,7 @@ Skip if it's a single-issue change.
 2. **Plan-agent bundles into waves.** One sub-agent reads all issue bodies and returns a JSON plan: `{wave, branch_name, issues, est_files_touched, risk_notes}`. Bundle related findings into one PR per maintainer preference — experience shows that grouping related work into one branch reduces review fatigue and merge-order complexity; resist the urge to split every finding into its own PR. Smallest-touch branches go first within a wave.
 3. **Dispatch fix-agents in parallel-background.** Confirm with the user what model to use for sub-agents, if they didn't specify. One sub-agent per branch, each in its own worktree on its own port. Spawn as background tasks; you'll be notified as they land. Do not poll.
 4. **Reviewer fires on completion.** Each fix-agent's task-notification triggers an independent reviewer sub-agent (separate worktree). Reviewer posts its verdict (ready to merge; or has issues that must be addressed) to the PR as a one line comment.
-5. **Merge wave into cumulative preview branch.** Branch `preview/<orchestrator>` off `main`; merge LGTM'd PR branches in order (smallest-touch first). Validate: currently run the Python CLI (`./download_images.py`) and any available test scripts; when the Astro site lands, add `npm run build` + `npx astro check` (those commands do not exist yet — note them in the checklist so they get picked up automatically once the site ships). Push. Leave any dev server running on a fixed port; share probe URLs.
+5. **Merge wave into cumulative preview branch.** Branch `preview/<orchestrator>` off `main`; merge LGTM'd PR branches in order (smallest-touch first). Validate with `npm run build` + `npx astro check` and the test suite. Push. Leave the dev server running on a fixed port; share probe URLs.
 6. **Stage-gate.** Pause for the user before the next wave or merge-to-main. The cumulative preview branch is the user-verifiable checkpoint — always give the user a chance to click through before merging to `main`. Staged verification is load-bearing; do not skip it even when the wave looks clean.
 
 ## HTML triage pattern
@@ -77,7 +77,7 @@ The cumulative branch is *not* the merge-to-main path — it's the integration t
 
 **Sub-agents over-prune content-judgment work.** Parallelize mechanical restructure; serialize content-pruning. For audit triage, prefer the orchestrator doing the dedup pass over delegating it.
 
-**Port collisions kill sibling worktrees.** When a dev server is introduced (it arrives with the Astro site), dev-start must kill LISTEN owners on bind. Default port 4321 is almost always another worktree's. Always assign a port per lane (`PORT=43XX <script>`) with the port pre-assigned at orchestration start. Scan 4321–4330 once at orchestration start; allocate one port per worktree. Until dev-server scripts exist, this discipline is cosmetic — note it in the brief anyway so sub-agents don't race on a future default.
+**Port collisions kill sibling worktrees.** The dev server binds a port, and default 4321 is almost always another worktree's. Assign a port per lane (`PORT=43XX <dev-server-script>`), pre-assigned at orchestration start: scan 4321–4330 once and allocate one port per worktree.
 
 **Read-tool cache anomalies under heavy parallel work.** After 8 parallel fix-agents have read the same files, the main orchestrator's Read may return stale content for files those agents wrote. When in doubt re-Read or run `git show HEAD:<path>` to anchor on the on-disk truth.
 
@@ -89,7 +89,7 @@ The cumulative branch is *not* the merge-to-main path — it's the integration t
 
 **Triage drops are signal, not failure.** A 40–50% triage-drop rate is normal and healthy for broad sweeps. Most drops are already-tracked items, post-launch-only scope, or findings that are design calls outside the current mandate.
 
-**This is a PUBLIC repository.** Every PR title, branch name, issue title, issue body, and inline comment is publicly visible to anyone on the internet. Before filing issues or posting PR comments, verify they are public-safe: no secrets, tokens, API keys, personal data, internal service URLs, or private customer information. See the `public-repo-safety` skill for a pre-flight checklist.
+**Public repo.** PRs, branch names, issues, and comments are all publicly visible — keep them public-safe (no secrets, tokens, or personal data). See the `public-repo-safety` skill.
 
 ## Anti-patterns
 

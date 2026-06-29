@@ -1,13 +1,11 @@
 # resources/
 
-Background and frame assets used by the legacy compositing pipeline and (later)
-the static site.
+Background and frame image assets the compositing pipeline draws on.
 
-> **License: ALL RIGHTS RESERVED.** Unlike the repository's MIT-licensed code,
-> these assets may not be copied, modified, redistributed, or relicensed without
-> the owner's permission. Do not move them into examples or the site's source in a
-> way that relicenses them. This is a hard boundary on a public repo — see the
-> `public-repo-safety` skill.
+> **All rights reserved** — see `LICENSE`. These assets are not covered by the
+> repo's MIT license and may not be copied, modified, redistributed, or relicensed
+> without the owner's permission. Don't move them into examples or other source in a
+> way that relicenses them.
 
 ## Assets
 

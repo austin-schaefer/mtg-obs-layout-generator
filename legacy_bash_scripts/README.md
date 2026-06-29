@@ -1,15 +1,12 @@
 # legacy_bash_scripts/
 
-The original bash implementations of the pipeline, kept as **frozen reference
-only**. They are not maintained and should not be extended.
+The original bash implementations of the pipeline, kept for reference. The Python
+scripts at the repo root supersede them.
 
-| File | Was |
+| File | Python equivalent |
 |---|---|
-| `download_images.sh` | Original main pipeline (superseded by `download_images.py`) |
-| `booster-builder-bash.sh` | Original booster composer (superseded by `booster_builder.py`) |
-| `cleanup.sh` | Original cleanup utility (superseded by `cleanup.py`) |
+| `download_images.sh` | `download_images.py` |
+| `booster-builder-bash.sh` | `booster_builder.py` |
+| `cleanup.sh` | `cleanup.py` |
 
-These use Zsh-specific syntax. The Python versions replaced them; both the bash and
-Python layers are now legacy — the future of the repo is the static site (see
-`CLAUDE.md` and `docs/website-plan.md`). Mine these for the pipeline's behavior, not
-as code to evolve.
+These use Zsh-specific syntax.

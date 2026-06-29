@@ -16,7 +16,7 @@ booster_art_urls.txt
 custom/
 resources/hero.*
 
-# --- Secrets & local env (this is a PUBLIC repo — keep them out) ---
+# --- Secrets & local env ---
 .env
 .env.*
 !.env.example
@@ -24,7 +24,7 @@ resources/hero.*
 *.pem
 secrets.*
 
-# --- Future static site (Astro + Netlify) ---
+# --- Node / Astro / Netlify build output ---
 node_modules/
 dist/
 .astro/

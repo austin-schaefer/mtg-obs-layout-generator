@@ -16,11 +16,5 @@ this README in the same commit (see `.githooks/pre-commit`).
 
 Both are wired up in `.claude/settings.json` under `hooks`.
 
-> No `.env`-linking script exists here on purpose: this is a **public, static**
-> project with no committed secrets to link (see the `public-repo-safety` skill).
-
-## Future (with the static site)
-
-The site will add dev-server wrappers here (e.g. `dev-start.sh`, `dev-probe.sh`)
-so per-worktree dev servers get assigned ports and the orchestration workflow can
-run parallel lanes without port collisions.
+> There's no `.env`-linking script: this is a public repo with no committed secrets
+> to link (see the `public-repo-safety` skill).

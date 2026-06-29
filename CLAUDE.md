@@ -1,108 +1,102 @@
 # CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) working in this repository. These
-instructions override default behavior — follow them exactly.
+Guidance for Claude Code working in this repository. These instructions override
+default behavior — follow them exactly.
 
 ## Project
 
-OBS streaming-layout generator for Magic: The Gathering — composites card grids
-and custom backgrounds for the [Clock Spinning Podcast](https://www.youtube.com/@clockspinning).
+obs-layouts generates OBS streaming layouts for Magic: The Gathering — composited
+card grids and slide backgrounds for the [Clock Spinning Podcast](https://www.youtube.com/@clockspinning).
+A host chooses some cards — a Scryfall search, a set code to roll a random booster,
+or their own images — and gets back broadcast-ready slides and a montage grid.
 
-**The future of this repo is a static website** so a host or co-host can generate
-layouts from the browser (see `docs/website-plan.md` and `BOOTSTRAP.md`). The
-existing Python CLI is **legacy** — kept only as a reference for the rough
-implementation shape the site will reimplement. Do not treat it as the primary
-artifact or extend it with new features; new work targets the site.
+It's a static website: Astro + Tailwind v4, deployed on Netlify, with no backend and
+no database. The image pipeline runs in the browser or at build time.
+
+The compositing pipeline is also written as Python scripts (`download_images.py`,
+`booster_builder.py`) that define its exact behavior — fit-resize, region placement,
+frame overlay, transparency holes, grid montage. The coordinate spec is captured in
+the **`obs-layouts-design`** skill.
 
 ## Tech stack
 
-- **The site (primary, being built):** Astro + Tailwind v4 (CSS-first `@theme` tokens) + Netlify. **Static only — no backend, no database.** Anything dynamic happens at build time or client-side.
-- **Legacy CLI (reference only):** Python 3 · ImageMagick (`convert`, `magick`, `montage`, `identify`) · `wget` · vendored `scry` Scryfall client.
+- **Site:** Astro + Tailwind v4 (CSS-first `@theme` tokens), static on Netlify. No backend, no database.
+- **Pipeline:** ImageMagick compositing + the `scry` Scryfall client. The Python scripts use `convert` / `magick` / `montage` / `identify`.
 
 ## Structure
 
 ```
-docs/                   Decision records & design notes — incl. website-plan.md (see docs/README.md)
-BOOTSTRAP.md            Copy-paste prompt to scaffold the static site
 .claude/                Agentic harness: settings, skills, agents
 .githooks/              pre-commit (sub-README enforcement)
 scripts/                Repo + agent wrapper scripts (see scripts/README.md)
-resources/              Background/frame assets — all rights reserved (see resources/README.md)
-
-# --- legacy reference (do not extend) ---
-download_images.py      Pipeline reference: fetch → composite → grid (SCRY / BOOST / CUSTOM modes)
+resources/              Background / frame image assets (see resources/README.md)
+download_images.py      Pipeline: fetch → composite → grid (SCRY / BOOST / CUSTOM modes)
 booster_builder.py      Random booster-pack composer
 cleanup.py              Removes generated artifacts
-scry                    Vendored Scryfall API client (third-party — do not edit)
-legacy_bash_scripts/    Original bash versions (see its README)
+scry                    Scryfall API client (vendored third-party)
+legacy_bash_scripts/    Earlier bash implementation (see its README)
 ```
 
-The legacy pipeline composites onto fixed regions (horizontal art ≤1142×920,
-vertical ≤850×1250, fixed centering regions, transparency holes, grid cap
-2500×1400). Those numbers are the spec the site must reproduce, so they're
-preserved in one place: the **`obs-layouts-design`** skill — read it before
-reimplementing the image math.
+The pipeline composites onto fixed regions (horizontal art ≤1142×920, vertical
+≤850×1250, transparency holes, grid capped at 2500×1400). The exact coordinate spec
+lives in the **`obs-layouts-design`** skill — read it before working on image math.
 
 ## Design direction
 
 Nostalgic MTG broadcast aesthetic: marble/parchment surfaces, deep maroon + gold
 accents, ornate frames. The **`obs-layouts-design`** skill is the single source of
-truth for both the broadcast-layout coordinate system and the (seeded) web design
-tokens. Use it whenever you touch layout math, colors, typography, or — later —
-any site CSS. For greenfield UI craft, the built-in `frontend-design` skill applies.
+truth for the layout coordinate system and the web design tokens — use it whenever
+you touch layout math, colors, typography, or CSS. For greenfield UI craft, the
+built-in `frontend-design` skill applies.
 
 ## Task management — GitHub Issues + PRs
 
 - Issues describe **outcomes**, not implementations. Acceptance criteria are the contract; the description is context. If they conflict, criteria win.
 - **Feature branch → PR → `main`.** Never commit directly to `main`. One focused change per PR.
-- **Never open a PR without a local review with the owner first.** Commit and push to the feature branch freely, then walk the owner through the diff locally and get an explicit go-ahead **before** running `gh pr create`. This is a public repo — opening a PR is a public act. No surprise PRs.
-- Verify each acceptance criterion by **direct observation** (run the CLI, check the output image), not by trusting the description.
+- **Never open a PR without a local review with the owner first.** Commit and push freely, then walk the owner through the diff locally and get an explicit go-ahead before running `gh pr create`. No surprise PRs.
+- Verify each acceptance criterion by **direct observation**, not by trusting the description.
 - Helpful: `gh issue list`, `gh pr view --web`.
 
-## Threat model — this is a PUBLIC repo
+## Public repo
 
-**The repository is public and stays public.** Public-repo hardening *is* the
-posture (the opposite of a private project's calculus). Therefore:
+This repository is public. Everything committed is world-readable.
 
-- **Never commit secrets.** No API keys, tokens, `.env` files, or personal data — ever. `.env*` is gitignored; site secrets go in the Netlify env UI, never the repo or a client bundle.
-- **Everything is world-readable.** Branch names, commit messages, issue/PR titles and bodies, and any generated/committed files must be safe for public consumption. No private URLs, no internal notes, no personal info.
-- **Asset licensing is a hard boundary.** Files in `resources/` are **all rights reserved** (not MIT like the code). Do not relicense, redistribute, or copy them into examples.
-- Before every commit/PR, run the **`public-repo-safety`** skill checklist.
+- **No secrets, ever.** No API keys, tokens, `.env` files, or personal data. `.env*` is gitignored; any site key goes in the Netlify env UI, never the repo or a client bundle.
+- **Public-safe everything.** Branch names, commit messages, issue/PR titles and bodies, and committed files must be fine for anyone to read.
+- **Assets are not MIT.** `resources/` is all rights reserved (see `LICENSE`); don't relicense, redistribute, or copy it into examples.
+- Run the **`public-repo-safety`** skill before each commit/PR.
 
 ## Conventions
 
-- **Small increments, commit often** — this codebase is precious to its owner; keep changes focused and reversible.
-- **Conventional commits** referencing issues where applicable: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`. End commit messages with the standard `Co-Authored-By` trailer.
-- **Do-not-touch zones:** `resources/` (licensed assets), the legacy Python (`download_images.py`, `booster_builder.py`, `cleanup.py`) and `scry` (vendored third-party — bundles [scrycall](https://github.com/0xdanelia/scrycall), MIT), and `legacy_bash_scripts/` — all frozen reference. Don't refactor or feature-add them; mine them for the site.
+- **Small increments, commit often** — keep changes focused and reversible.
+- **Conventional commits** referencing issues where applicable: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`. End messages with the standard `Co-Authored-By` trailer.
+- **Do-not-touch zones:** `resources/` (licensed assets) and `scry` (vendored third-party — bundles [scrycall](https://github.com/0xdanelia/scrycall), MIT).
+- The Python scripts and `legacy_bash_scripts/` define the pipeline's behavior — build the site rather than extending them.
 - **Bash shape:** prefer wrapper scripts under `scripts/` over compound one-liners; keeps the permission allowlist clean.
-- **Keep docs current.** Update `README.md` (user-facing) and the relevant sub-README when behavior changes. This file is the persistent brain — keep it accurate, don't let it drift.
-- **Knowledge lives in committed files, not agent memory.** Anything about this project or harness (direction, conventions, decisions, workflow rules) goes in committed files — `CLAUDE.md`, `.claude/skills/`, `docs/` — so it's versioned and shared, not in any agent's private memory.
+- **Keep docs current.** Update `README.md` and the relevant sub-README when behavior changes. This file is the persistent brain — keep it accurate.
+- **Knowledge lives in committed files, not agent memory.** Anything about the project or harness goes in committed files (`CLAUDE.md`, `.claude/skills/`) so it's versioned and shared.
 
 ## Directory READMEs (pre-commit enforced)
 
 `.githooks/pre-commit` blocks a commit that changes code in a tracked directory
-without staging that directory's README in the same changeset. Enable once per
-clone:
+without staging that directory's README in the same changeset. Enable once per clone:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-Touch code in a tracked dir → update its README in the same commit. Bypass only
-when you truly mean it: `git commit --no-verify`.
+Touch code in a tracked dir → update its README in the same commit. Bypass only when
+you truly mean it: `git commit --no-verify`.
 
 ## Sub-agents
 
 Delegate hands-on coding to the **`code-craftsman`** agent so the main thread keeps
 context for architecture. For audit sweeps / parallel fix campaigns, the
 **`orchestration-workflow`** skill defines the multi-agent loop (fan out, await
-notifications, reviewer-per-PR, cumulative preview, stage-gate). Brief sub-agents
-with exact file paths, the issue + acceptance criteria, and a concise report format.
+notifications, reviewer-per-PR, cumulative preview, stage-gate). Brief sub-agents with
+exact file paths, the issue + acceptance criteria, and a concise report format.
 
-## Legacy commands (reference)
-
-The Python CLI still runs — use it to study the pipeline behavior the site must
-reproduce, not as something to extend.
+## Pipeline scripts
 
 | Command | Purpose |
 |---|---|
@@ -113,4 +107,4 @@ reproduce, not as something to extend.
 
 Generated (gitignored) artifacts: `images_vertical/`, `images_horizontal/`,
 `images_export*/`, `images_export_final/`, `grid.png`, `booster_*_urls.txt`.
-Legacy CLI requirements: Python 3 · `brew install imagemagick` · `brew install wget`.
+Requires Python 3, ImageMagick, and wget.

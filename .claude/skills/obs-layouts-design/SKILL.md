@@ -1,17 +1,16 @@
 ---
 name: obs-layouts-design
-description: "The obs-layouts design system — single source of truth for visuals. Use whenever you touch image-compositing math, the broadcast layout coordinate system, or (for the upcoming site) colors, typography, breakpoints, CSS tokens, or component markup. Triggers: 'layout', 'coordinates', 'composite', 'background', 'frame', 'design tokens', 'colors', 'typography', 'breakpoints', 'CSS', 'styling', 'theme', 'grid'."
+description: "The obs-layouts design system — single source of truth for visuals. Use whenever you touch image-compositing math, the broadcast layout coordinate system, colors, typography, breakpoints, CSS tokens, or component markup. Triggers: 'layout', 'coordinates', 'composite', 'background', 'frame', 'design tokens', 'colors', 'typography', 'breakpoints', 'CSS', 'styling', 'theme', 'grid'."
 ---
 
 # obs-layouts design system
 
 Two layers live here, both authoritative:
 
-1. **Broadcast layout system** — the exact coordinate spec the legacy Python
-   pipeline composites to. This is the *behavior contract* the static site must
-   reproduce. Don't scatter these magic numbers — they live here.
-2. **Web design tokens** — a seeded Tailwind v4 `@theme` palette + type scale +
-   breakpoints for the site being built, derived from the broadcast aesthetic.
+1. **Broadcast layout system** — the exact coordinate spec the pipeline composites
+   to. Don't scatter these magic numbers — they live here.
+2. **Web design tokens** — the Tailwind v4 `@theme` palette, type scale, and
+   breakpoints, derived from the broadcast aesthetic.
 
 For greenfield UI craft (novel components, high-polish pages), also use the
 built-in `frontend-design` skill. This skill governs *what the obs-layouts brand is*;
@@ -19,7 +18,7 @@ built-in `frontend-design` skill. This skill governs *what the obs-layouts brand
 
 ---
 
-## 1. Broadcast layout system (the spec to reproduce)
+## 1. Broadcast layout system
 
 The pipeline builds two kinds of slide and a grid. All values are pixels, sourced
 from `ImageConfig` in `download_images.py` (the canonical definition — if it ever
@@ -67,18 +66,17 @@ centered on title slides (first/last).
 
 ### Rate limiting
 
-Scryfall calls space by `API_DELAY = 0.11s`. The site must respect Scryfall's
-guidelines too (no key required — keep it that way).
+Scryfall calls space by `API_DELAY = 0.11s`. Respect Scryfall's rate-limit
+guidelines (no key required — keep it that way).
 
 ---
 
-## 2. Web design tokens (seeded for the static site)
+## 2. Web design tokens
 
-Approach: declare tokens as CSS custom properties in a
-Tailwind v4 `@theme` block in `src/styles/global.css`; each becomes a utility
-automatically (`--color-marble` → `bg-marble`). **No `tailwind.config.js`** —
-CSS-first. Self-host fonts (no CDNs). These are a starting point — refine against
-real mocks during the build, but keep the palette cohesive with the broadcast look.
+Declare tokens as CSS custom properties in a Tailwind v4 `@theme` block in
+`src/styles/global.css`; each becomes a utility automatically (`--color-marble` →
+`bg-marble`). **No `tailwind.config.js`** — CSS-first. Self-host fonts (no CDNs).
+Refine the palette against real mocks; keep it cohesive with the broadcast look.
 
 ```css
 @theme {
@@ -134,7 +132,7 @@ serif + sans on one toolbar).
 
 ---
 
-## 3. Layout-review workflow (once the site exists)
+## 3. Layout review workflow
 
 After **any** CSS / breakpoint / composite-markup change, review with Playwright MCP
 before declaring done:

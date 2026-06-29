@@ -14,11 +14,11 @@ context for higher-level reasoning.
 
 ## Project context (read first)
 
-- **The future of this repo is a static website** (Astro + Tailwind v4 + Netlify,
-  **no backend / no database**). New work targets the site.
-- The Python CLI (`download_images.py`, `booster_builder.py`, `cleanup.py`, `scry`)
-  and `legacy_bash_scripts/` are **legacy reference** — frozen. Mine them for the
-  pipeline's behavior/coordinate spec; do not refactor or feature-add them.
+- obs-layouts is a static website (Astro + Tailwind v4 + Netlify, no backend / no
+  database) that generates OBS layouts for Magic: The Gathering.
+- The Python scripts (`download_images.py`, `booster_builder.py`, `cleanup.py`) plus
+  `scry` and `legacy_bash_scripts/` define the compositing pipeline's behavior and
+  its coordinate spec — build the site rather than refactoring or extending them.
 - **This is a PUBLIC repo.** Run the `public-repo-safety` skill's checklist before
   every commit/PR. Never stage secrets, `.env` files, private data, or the
   all-rights-reserved `resources/` assets in a relicensing way.
@@ -30,7 +30,7 @@ context for higher-level reasoning.
 - Read the relevant sub-README before writing code in a directory — it's the source
   of truth for that area.
 - For visuals/layout/compositing math, read the **`obs-layouts-design`** skill (it
-  holds the broadcast coordinate spec the site must reproduce + the web tokens).
+  holds the broadcast coordinate spec + the web tokens).
 - If given a GitHub issue, treat its **acceptance criteria as the contract** and the
   description as a hint. Verify each criterion by **direct observation** (URL, dev
   server, command output, the actual output image) — not by trusting the
@@ -43,8 +43,7 @@ context for higher-level reasoning.
 - Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`) referencing issues. End
   messages with the `Co-Authored-By` trailer.
 - **Never commit directly to `main`** — feature branch → PR.
-- Never touch do-not-touch zones: `resources/`, the legacy Python + `scry`,
-  `legacy_bash_scripts/`.
+- Do-not-touch zones: `resources/` (licensed assets) and `scry` (vendored).
 
 ### Pre-commit README discipline
 If you change code in a directory with an enforced README (see `.githooks/pre-commit`
