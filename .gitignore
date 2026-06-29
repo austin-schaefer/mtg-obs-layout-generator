@@ -1,0 +1,44 @@
+# --- Generated layout artifacts (download_images.py / booster_builder.py) ---
+images_vertical/
+images_horizontal/
+images_export/
+images_export_w_horizontal/
+images_export_w_horizontal_and_frame/
+images_export_final/
+temp_resize_*/
+temp_hero*/
+grid.png
+grid_temp.png
+booster_card_urls.txt
+booster_art_urls.txt
+
+# User-supplied inputs (CUSTOM mode + optional hero image) — never commit
+custom/
+resources/hero.*
+
+# --- Secrets & local env ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.*
+
+# --- Node / Astro / Netlify build output ---
+node_modules/
+dist/
+.astro/
+.netlify/
+
+# --- Agent harness scratch (not for commit) ---
+.playwright-mcp/
+tmp/
+.claude/worktrees/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
