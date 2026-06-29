@@ -1,0 +1,3 @@
+/* Tailwind v4, CSS-first via the @tailwindcss/vite plugin — no tailwind.config.js.
+   Brand tokens (@theme), self-hosted fonts, and canonical breakpoints land in #8. */
+@import "tailwindcss";

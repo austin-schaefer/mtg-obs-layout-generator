@@ -1,0 +1,17 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import StageBadge from "../components/StageBadge.tsx";
+---
+
+<BaseLayout>
+  <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <h1 class="text-2xl font-semibold">obs-layouts</h1>
+    <p class="mt-3">
+      Phase 0 scaffold — Astro + Tailwind v4 + Preact, deployed on Netlify. Brand
+      tokens and the responsive shell arrive in the next step (#8).
+    </p>
+    <div class="mt-6">
+      <StageBadge client:load />
+    </div>
+  </main>
+</BaseLayout>
