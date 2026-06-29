@@ -76,6 +76,7 @@ posture (the opposite of a private project's calculus). Therefore:
 - **Do-not-touch zones:** `resources/` (licensed assets), the legacy Python (`download_images.py`, `booster_builder.py`, `cleanup.py`) and `scry` (vendored third-party — bundles [scrycall](https://github.com/0xdanelia/scrycall), MIT), and `legacy_bash_scripts/` — all frozen reference. Don't refactor or feature-add them; mine them for the site.
 - **Bash shape:** prefer wrapper scripts under `scripts/` over compound one-liners; keeps the permission allowlist clean.
 - **Keep docs current.** Update `README.md` (user-facing) and the relevant sub-README when behavior changes. This file is the persistent brain — keep it accurate, don't let it drift.
+- **Knowledge lives in committed files, not agent memory.** Anything about this project or harness (direction, conventions, decisions, workflow rules) goes in committed files — `CLAUDE.md`, `.claude/skills/`, `docs/` — so it's versioned and shared, not in any agent's private memory.
 
 ## Directory READMEs (pre-commit enforced)
 
