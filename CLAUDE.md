@@ -55,8 +55,9 @@ any site CSS. For greenfield UI craft, the built-in `frontend-design` skill appl
 
 - Issues describe **outcomes**, not implementations. Acceptance criteria are the contract; the description is context. If they conflict, criteria win.
 - **Feature branch → PR → `main`.** Never commit directly to `main`. One focused change per PR.
+- **Never open a PR without a local review with the owner first.** Commit and push to the feature branch freely, then walk the owner through the diff locally and get an explicit go-ahead **before** running `gh pr create`. This is a public repo — opening a PR is a public act. No surprise PRs.
 - Verify each acceptance criterion by **direct observation** (run the CLI, check the output image), not by trusting the description.
-- Helpful: `gh issue list`, `gh pr create`, `gh pr view --web`.
+- Helpful: `gh issue list`, `gh pr view --web`.
 
 ## Threat model — this is a PUBLIC repo
 
