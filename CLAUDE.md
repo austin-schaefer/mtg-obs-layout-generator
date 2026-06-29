@@ -1,147 +1,114 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) working in this repository. These
+instructions override default behavior — follow them exactly.
 
-## Project Overview
+## Project
 
-This repository is an OBS (Open Broadcaster Software) layout generator for Magic: The Gathering card displays. It automates the creation of card grids and custom backgrounds for streaming/broadcasting purposes.
+OBS streaming-layout generator for Magic: The Gathering — composites card grids
+and custom backgrounds for the [Clock Spinning Podcast](https://www.youtube.com/@clockspinning).
 
-## Core Architecture
+**The future of this repo is a static website** so a host or co-host can generate
+layouts from the browser (see `docs/website-plan.md` and `BOOTSTRAP.md`). The
+existing Python CLI is **legacy** — kept only as a reference for the rough
+implementation shape the site will reimplement. Do not treat it as the primary
+artifact or extend it with new features; new work targets the site.
 
-The project consists of six main components:
+## Tech stack
 
-1. **`scry` (Python executable)**: A Scryfall API client for fetching Magic: The Gathering card data
-2. **`download_images.py`**: Main workflow script (Python implementation - recommended)
-3. **`download_images.sh`**: Main workflow script (Bash implementation - legacy)
-4. **`booster_builder.py`**: Booster pack composition calculator (Python implementation - recommended)
-5. **`booster-builder-bash.sh`**: Booster pack composition calculator (Bash implementation - legacy)
-6. **`cleanup.sh`**: Utility script for removing generated files and temporary directories
+- **The site (primary, being built):** Astro + Tailwind v4 (CSS-first `@theme` tokens) + Netlify. **Static only — no backend, no database.** Anything dynamic happens at build time or client-side.
+- **Legacy CLI (reference only):** Python 3 · ImageMagick (`convert`, `magick`, `montage`, `identify`) · `wget` · vendored `scry` Scryfall client.
 
-### Image Processing Pipeline
+## Structure
 
-The image processing pipeline (implemented in both Python and Bash) orchestrates the following workflow:
+```
+docs/                   Decision records & design notes — incl. website-plan.md (see docs/README.md)
+BOOTSTRAP.md            Copy-paste prompt to scaffold the static site
+.claude/                Agentic harness: settings, skills, agents
+.githooks/              pre-commit (sub-README enforcement)
+scripts/                Repo + agent wrapper scripts (see scripts/README.md)
+resources/              Background/frame assets — all rights reserved (see resources/README.md)
 
-1. **Data Fetching**: Uses the `scry` tool to query Scryfall API for card images and artwork
-2. **Image Download**: Downloads both card images and artwork crops with rate limiting (0.11s delays)
-3. **Art Resizing**: Intelligently resizes artwork to fit within 1142x920 pixel constraints
-4. **Background Composition**: Overlays cards onto marble backgrounds at specific coordinates (+210+195)
-5. **Art Integration**: Centers artwork on backgrounds with dynamic positioning calculations
-6. **Frame Overlay**: Applies host frame graphics for streaming layout
-7. **Transparency Effects**: Punches transparency holes at specific coordinates for overlay effects
-8. **Grid Generation**: Creates montage grids with customizable tile arrangements
-
-### Resource Assets
-
-The `resources/` directory contains:
-- `marble-background.png`: Base background template (4.6MB)
-- `host-frames-card-discussion.png`: Overlay frame graphics (174KB)
-- `title_background.png` & `title_background_w_frame.png`: Title screen backgrounds (5.2MB & 5.6MB)
-
-## Common Commands
-
-### Running the Image Generation Pipeline
-```bash
-# Python version (recommended)
-./download_images.py
-
-# Or bash version
-./download_images.sh
+# --- legacy reference (do not extend) ---
+download_images.py      Pipeline reference: fetch → composite → grid (SCRY / BOOST / CUSTOM modes)
+booster_builder.py      Random booster-pack composer
+cleanup.py              Removes generated artifacts
+scry                    Vendored Scryfall API client (third-party — do not edit)
+legacy_bash_scripts/    Original bash versions (see its README)
 ```
 
-The script supports two modes:
+The legacy pipeline composites onto fixed regions (horizontal art ≤1142×920,
+vertical ≤850×1250, fixed centering regions, transparency holes, grid cap
+2500×1400). Those numbers are the spec the site must reproduce, so they're
+preserved in one place: the **`obs-layouts-design`** skill — read it before
+reimplementing the image math.
 
-**SCRY Mode** - Search Scryfall for cards:
-- Enter a Scryfall search query (e.g., "set:neo", "type:creature")
-- Specify grid arrangement (e.g., "8x0", "9x0")
+## Design direction
 
-**BOOST Mode** - Build a random booster pack:
-- Enter a set code (e.g., "NEO", "ONS", "TSP")
-- Automatically builds a randomized booster with correct structure
-- Grid arrangement is determined automatically based on booster size
+Nostalgic MTG broadcast aesthetic: marble/parchment surfaces, deep maroon + gold
+accents, ornate frames. The **`obs-layouts-design`** skill is the single source of
+truth for both the broadcast-layout coordinate system and the (seeded) web design
+tokens. Use it whenever you touch layout math, colors, typography, or — later —
+any site CSS. For greenfield UI craft, the built-in `frontend-design` skill applies.
 
-### Querying Card Data
+## Task management — GitHub Issues + PRs
+
+- Issues describe **outcomes**, not implementations. Acceptance criteria are the contract; the description is context. If they conflict, criteria win.
+- **Feature branch → PR → `main`.** Never commit directly to `main`. One focused change per PR.
+- Verify each acceptance criterion by **direct observation** (run the CLI, check the output image), not by trusting the description.
+- Helpful: `gh issue list`, `gh pr create`, `gh pr view --web`.
+
+## Threat model — this is a PUBLIC repo
+
+**The repository is public and stays public.** Public-repo hardening *is* the
+posture (the opposite of a private project's calculus). Therefore:
+
+- **Never commit secrets.** No API keys, tokens, `.env` files, or personal data — ever. `.env*` is gitignored; site secrets go in the Netlify env UI, never the repo or a client bundle.
+- **Everything is world-readable.** Branch names, commit messages, issue/PR titles and bodies, and any generated/committed files must be safe for public consumption. No private URLs, no internal notes, no personal info.
+- **Asset licensing is a hard boundary.** Files in `resources/` are **all rights reserved** (not MIT like the code). Do not relicense, redistribute, or copy them into examples.
+- Before every commit/PR, run the **`public-repo-safety`** skill checklist.
+
+## Conventions
+
+- **Small increments, commit often** — this codebase is precious to its owner; keep changes focused and reversible.
+- **Conventional commits** referencing issues where applicable: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`. End commit messages with the standard `Co-Authored-By` trailer.
+- **Do-not-touch zones:** `resources/` (licensed assets), the legacy Python (`download_images.py`, `booster_builder.py`, `cleanup.py`) and `scry` (vendored third-party — bundles [scrycall](https://github.com/0xdanelia/scrycall), MIT), and `legacy_bash_scripts/` — all frozen reference. Don't refactor or feature-add them; mine them for the site.
+- **Bash shape:** prefer wrapper scripts under `scripts/` over compound one-liners; keeps the permission allowlist clean.
+- **Keep docs current.** Update `README.md` (user-facing) and the relevant sub-README when behavior changes. This file is the persistent brain — keep it accurate, don't let it drift.
+
+## Directory READMEs (pre-commit enforced)
+
+`.githooks/pre-commit` blocks a commit that changes code in a tracked directory
+without staging that directory's README in the same changeset. Enable once per
+clone:
+
 ```bash
-python3 scry "search_query" --print="%{image_uris.png}"
-python3 scry "search_query" --print="%{image_uris.art_crop}"
+git config core.hooksPath .githooks
 ```
 
-### Cleanup Generated Files
-```bash
-# Python version (recommended)
-./cleanup.py
+Touch code in a tracked dir → update its README in the same commit. Bypass only
+when you truly mean it: `git commit --no-verify`.
 
-# Or bash version
-./cleanup.sh
-```
+## Sub-agents
 
-### Building Booster Packs
+Delegate hands-on coding to the **`code-craftsman`** agent so the main thread keeps
+context for architecture. For audit sweeps / parallel fix campaigns, the
+**`orchestration-workflow`** skill defines the multi-agent loop (fan out, await
+notifications, reviewer-per-PR, cumulative preview, stage-gate). Brief sub-agents
+with exact file paths, the issue + acceptance criteria, and a concise report format.
 
-Booster building is integrated into `download_images.py` via BOOST mode. You can also use it standalone:
+## Legacy commands (reference)
 
-```bash
-./booster_builder.py
-```
+The Python CLI still runs — use it to study the pipeline behavior the site must
+reproduce, not as something to extend.
 
-This builds a randomized booster pack for any Magic set code:
-- Queries Scryfall for cards of each rarity in the set
-- Selects random cards without duplicates
-- Orders cards: commons → uncommons → rares → mythics → timeshifted
-- Outputs URLs to files for `download_images.py` to consume
-- Handles special historical sets (Arabian Nights, The Dark, Fallen Empires, etc.)
-- Pre-mythic era standard boosters
-- Modern boosters with mythic rarity randomization (1/8 chance)
-- Unique set structures (Time Spiral with timeshifted cards)
+| Command | Purpose |
+|---|---|
+| `./download_images.py` | Pipeline. Modes: **SCRY** (Scryfall query), **BOOST** (random booster), **CUSTOM** (your own paired images) |
+| `./booster_builder.py` | Standalone booster composition |
+| `./cleanup.py` | Remove generated artifacts |
+| `python3 scry "<query>" --print="%{image_uris.png}"` | Query card data directly |
 
-## Dependencies
-
-- **Python 3**: For the `scry` Scryfall client and `download_images.py` script
-- **ImageMagick**: For image processing (`convert`, `magick composite`, `montage`, `identify`)
-- **wget**: For downloading images
-- **Bash/Zsh**: Shell environment (only required for bash version; bash script uses Zsh-specific syntax)
-
-## Generated Directory Structure
-
-The pipeline creates several temporary directories:
-- `images_card/`: Downloaded card images
-- `images_art/`: Downloaded and resized artwork
-- `images_export/`: Cards composited with backgrounds
-- `images_export_w_art/`: Backgrounds with artwork added
-- `images_export_w_art_and_frame/`: With host frames applied
-- `images_export_final/`: Final output with transparency effects
-
-## Image Processing Parameters
-
-- **Art resize constraints**: 1142x920 pixels maximum
-- **Card overlay position**: +210+195 offset on background
-- **Art centering**: Dynamic calculation based on image dimensions
-- **Transparency holes**: Rectangles at coordinates (1010,858 1489,1337) and (2008,858 2487,1337)
-- **Grid resize limits**: 2500x1400 pixels maximum for final output
-
-## Development Guidelines
-
-**CRITICAL: This codebase is precious to the repository owner. Follow these rules strictly:**
-
-1. **Work in Small Increments**: Make small, focused changes. Avoid complex or sprawling modifications.
-2. **Commit Often**: Create git commits frequently so changes can be rolled back if needed.
-3. **Document Everything**: Update the README.md file with any changes you make so the owner can understand and use your work.
-
-## Development Notes
-
-- The `scry` executable is a self-contained Python application with embedded dependencies
-- Rate limiting is implemented (0.11s delays) to respect Scryfall API guidelines
-- Image processing uses precise coordinate positioning for streaming overlay compatibility
-- The pipeline is designed for batch processing of card sets for streaming layouts
-
-## Python vs Bash Implementation
-
-The Python version (`download_images.py`) is the recommended implementation:
-- **Object-oriented design**: Uses an `ImageProcessor` class for clean organization
-- **Better error handling**: Comprehensive error checking and reporting
-- **Cross-platform**: Works consistently across different operating systems
-- **Maintainable**: Easier to extend and modify
-- **Type hints**: Better code documentation and IDE support
-
-The Bash version (`download_images.sh`) is preserved for:
-- Backwards compatibility
-- Reference implementation
-- Users who prefer shell scripting
+Generated (gitignored) artifacts: `images_vertical/`, `images_horizontal/`,
+`images_export*/`, `images_export_final/`, `grid.png`, `booster_*_urls.txt`.
+Legacy CLI requirements: Python 3 · `brew install imagemagick` · `brew install wget`.
