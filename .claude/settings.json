@@ -1,0 +1,157 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+
+      "Bash(scripts/*.sh:*)",
+      "Bash(./scripts/*.sh:*)",
+
+      "Bash(dig:*)",
+      "Bash(curl -s http://localhost*)",
+      "Bash(curl -sI http://localhost*)",
+      "Bash(curl -sL http://localhost*)",
+      "Bash(curl -sS http://localhost*)",
+      "Bash(curl -sS https://*.netlify.app/*)",
+      "Bash(curl -sI https://*.netlify.app/*)",
+
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status*)",
+      "Bash(git fetch *)",
+      "Bash(git rev-parse *)",
+      "Bash(git show *)",
+      "Bash(git ls-files *)",
+      "Bash(git rm *)",
+      "Bash(git mv *)",
+      "Bash(git restore *)",
+      "Bash(git branch *)",
+      "Bash(git worktree *)",
+
+      "Bash(gh issue *)",
+      "Bash(gh pr *)",
+      "Bash(gh api *)",
+      "Bash(gh repo *)",
+      "Bash(gh workflow *)",
+      "Bash(gh run *)",
+      "Bash(gh release *)",
+      "Bash(gh label *)",
+      "Bash(gh search *)",
+
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(diff *)",
+      "Bash(jq *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(awk *)",
+      "Bash(sed *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(wc *)",
+      "Bash(cat)",
+      "Bash(tee *)",
+      "Bash(lsof *)",
+      "Bash(kill *)",
+      "Bash(kill -*)",
+      "Bash(pkill *)",
+      "Bash(mkdir -p *)",
+      "Bash(chmod +x *)",
+      "Bash(touch *)",
+      "Bash(env)",
+      "Bash(printenv*)",
+      "Bash(pwd)",
+      "Bash(date *)",
+      "Bash(which *)",
+      "Bash(type *)",
+      "Bash(seq *)",
+
+      "Bash(python3 *)",
+      "Bash(convert *)",
+      "Bash(magick *)",
+      "Bash(montage *)",
+      "Bash(identify *)",
+      "Bash(wget *)"
+    ],
+    "deny": [
+      "Bash(gh secret *)",
+      "Bash(gh ssh-key *)",
+      "Bash(gh auth logout *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh release delete *)",
+      "Bash(gh pr merge * --admin*)",
+      "Bash(git push --delete*)",
+      "Bash(git push * --delete*)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore --source*)",
+      "Bash(git branch -D*)",
+      "Bash(git branch --delete --force*)",
+      "Bash(git update-ref -d*)",
+      "Bash(git commit --amend*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(rm -rf resources*)",
+      "Bash(rm -rf scripts*)",
+      "Bash(rm -rf src*)",
+      "Bash(rm -rf .git*)",
+      "Bash(rm -rf .github*)",
+      "Bash(rm -rf .claude*)",
+      "Bash(rm -rf node_modules)",
+      "Bash(sudo *)",
+      "Bash(chmod 777*)",
+      "Bash(chmod -R 777*)",
+      "Bash(npm publish*)",
+      "Bash(npm unpublish*)",
+      "Bash(npm config set*)",
+      "Bash(netlify env:set*)",
+      "Bash(netlify env:unset*)",
+      "Bash(netlify sites:delete*)",
+      "Bash(curl * | sh*)",
+      "Bash(curl * | bash*)",
+      "Bash(wget * | sh*)",
+      "Bash(wget * | bash*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/link-worktree-settings.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/prune-worktrees.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/link-worktree-settings.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
