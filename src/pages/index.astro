@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import StageBadge from "../components/StageBadge.tsx";
+---
+
+<BaseLayout>
+  <SiteHeader />
+
+  <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 tablet:px-6 desktop:px-8">
+    <section class="max-w-2xl">
+      <h1 class="font-serif text-[26px] font-semibold text-ink desktop:text-[40px]">
+        The website is the broadcast surface.
+      </h1>
+      <p class="mt-4 font-sans text-[16px] leading-relaxed text-ink-soft">
+        Pick cards from a Scryfall search or roll a booster pack, then full-screen
+        the site and arrow-key through broadcast-ready slides — live HTML on a
+        16:9 stage. No files, no OBS compositing.
+      </p>
+
+      <div
+        class="mt-8 rounded-lg border border-rule bg-gradient-to-b from-panel-from to-panel-to p-5"
+      >
+        <p class="font-sans text-[15px] text-ink-soft">
+          Phase 0 foundation — app shell, brand tokens, and continuous deploy are
+          in place. The builder and presenter arrive in the next phases.
+        </p>
+        <div class="mt-4">
+          <StageBadge client:load />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>
