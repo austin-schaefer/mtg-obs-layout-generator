@@ -21,6 +21,11 @@ components/
   SiteHeader.astro    Wordmark + tagline + gold accent rule
   SiteFooter.astro    Attribution + source link
   StageBadge.tsx      Placeholder Preact island (proves hydration; removed in Phase 1)
+lib/
+  recipe.ts           Shared layout data model: Mode / CardRef / Card / LayoutRecipe;
+                      recipeToSlides() derives the ordered slide list
+  permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
+                      (lz-string compressed; see docs/permalink-scheme.md)
 pages/
   index.astro         App-shell landing page
 styles/
@@ -28,6 +33,14 @@ styles/
 ```
 
 `public/` (repo root) holds static passthrough assets like `favicon.svg`.
+
+## Data model
+
+`lib/recipe.ts` is the single shared shape the builder, the permalink, and the
+stage renderer all speak. A `LayoutRecipe` carries resolved card *identities*
+(`set` + `collector`) plus edits (order, exclusions, grid, card-vs-art, title) —
+never image URLs, which are reconstructed at render time. The permalink scheme
+that encodes it is documented in `docs/permalink-scheme.md`.
 
 ## Conventions
 
