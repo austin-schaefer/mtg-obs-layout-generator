@@ -20,14 +20,54 @@ layouts/
 components/
   SiteHeader.astro    Wordmark + tagline + gold accent rule
   SiteFooter.astro    Attribution + source link
-  StageBadge.tsx      Placeholder Preact island (proves hydration; removed in Phase 1)
+  Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
+                      L copy permalink), counter
+  PresenterApp.tsx    Client entry — picks recipe (mock or ?r= permalink), resolves cards
+  stage/
+    StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
+    Stage.tsx         Renders one slide (title / full-card / art) as canvas layers
+    GridOverview.tsx  Montage view — all visible cards tiled in a WxH grid
+lib/
+  recipe.ts           Shared layout data model: Mode / CardRef / Card / LayoutRecipe;
+                      recipeToSlides() / visibleCards() derive what's shown
+  stage.ts            2560×1440 coordinate system + regions + useStageScale() hook
+  permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
+                      (lz-string compressed; see docs/permalink-scheme.md)
+  mock-cards.ts       Phase-1 mock catalog + demo recipe (real Scryfall modes land later)
 pages/
   index.astro         App-shell landing page
+  present.astro       Full-viewport presenter (the screen-share surface)
 styles/
   global.css          @import "tailwindcss" + @fontsource fonts + @theme tokens
 ```
 
 `public/` (repo root) holds static passthrough assets like `favicon.svg`.
+
+## Data model
+
+`lib/recipe.ts` is the single shared shape the builder, the permalink, and the
+stage renderer all speak. A `LayoutRecipe` carries resolved card *identities*
+(`set` + `collector`) plus edits (order, exclusions, grid, card-vs-art, title) —
+never image URLs, which are reconstructed at render time. The permalink scheme
+that encodes it is documented in `docs/permalink-scheme.md`.
+
+Each card is **one** discussion slide showing the full card (vertical region) and
+its art (horizontal region) side by side; `recipe.faces` can narrow a card to
+card-only or art-only (the editor, #15, writes it). Full cards render at native
+size (never upscaled); card art is scaled to fill its region — both faithful to
+the pipeline's resize rules. The two host-cam boxes are painted plain white under
+the frame (the live surface has no transparency holes; webcams overlay in OBS).
+
+## The stage
+
+Everything broadcast renders onto a fixed **2560×1440** canvas (the OBS composite
+size — every `resources/*.png` background is this size) authored in true
+broadcast-space pixels, then scaled to fit the viewport by `<StageFrame>`. The
+region coordinates in `lib/stage.ts` mirror `ImageConfig` in `download_images.py`
+and the `obs-layouts-design` skill (the single source of truth) — keep them in
+sync. No transparency holes, no PNG export: this is the live surface (epic #19).
+The licensed backgrounds in `resources/` are imported in place (Astro hashes them
+into the build) — never copied or relicensed.
 
 ## Conventions
 

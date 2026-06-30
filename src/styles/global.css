@@ -46,20 +46,25 @@
   --font-sans:  "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-/* Base document defaults — sans body on a marble surface, serif for display. */
-:root {
-  color-scheme: light;
-}
+/* Base document defaults — sans body on a marble surface, serif for display.
+   Kept in `@layer base` so Tailwind utilities (e.g. `text-maroon` on a link-
+   styled button) win over these element defaults rather than being overridden
+   by them — unlayered rules would otherwise beat `@layer utilities`. */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
 
-body {
-  background-color: var(--color-marble);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-}
+  body {
+    background-color: var(--color-marble);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
 
-a {
-  color: var(--color-link);
-}
-a:visited {
-  color: var(--color-link-visited);
+  a {
+    color: var(--color-link);
+  }
+  a:visited {
+    color: var(--color-link-visited);
+  }
 }
