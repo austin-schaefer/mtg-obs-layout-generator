@@ -25,7 +25,9 @@ components/
                       edit-controls shell (behavior fills in with the editor, #15)
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
                       L copy permalink), counter
-  PresenterApp.tsx    Client entry — picks recipe (mock or ?r= permalink), resolves cards
+  PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
+                      decodes the recipe and re-hydrates its card identities into
+                      real artwork via Scryfall (loading / error states)
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
     Stage.tsx         Renders one slide (title / full-card / art) as canvas layers
@@ -36,9 +38,13 @@ lib/
   stage.ts            2560×1440 coordinate system + regions + useStageScale() hook
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)
-  mock-cards.ts       Phase-1 mock catalog + demo recipe (real Scryfall modes land later)
+  mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
   resolve.ts          resolveDeck(mode, input) — the builder's card-resolution seam;
-                      mock-backed now, replaced by Scryfall (#14) / booster (#17)
+                      dispatches scry → Scryfall search (#14), boost → booster roll (#17)
+  scryfall.ts         Browser-side Scryfall client (no key): rate-limited search,
+                      booster-rarity queries, and /cards/collection identity resolve
+  booster.ts          Faithful TS port of booster_builder.py — set/odds tables +
+                      rollBooster() drawing real cards, frozen to concrete identities
 pages/
   index.astro         Landing intro + the builder (creation surface)
   present.astro       Full-viewport presenter (the screen-share surface)

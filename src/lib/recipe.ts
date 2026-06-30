@@ -8,8 +8,8 @@
  * builder, the URL, and the stage all speak one language.
  *
  * Image URLs are NOT part of the recipe — only resolved card *identities* are.
- * URLs are reconstructed at render time (mock data now; Scryfall / booster later),
- * which is what keeps the permalink deterministic and small.
+ * URLs are reconstructed at render time (live, from Scryfall — or the mock catalog
+ * for the demo reel), which is what keeps the permalink deterministic and small.
  */
 
 export type Mode = "scry" | "boost" | "custom";
@@ -57,6 +57,34 @@ export interface LayoutRecipe {
 export const FACE_CARD = 0;
 export const FACE_ART = 1;
 export const FACE_BOTH = 2;
+
+/**
+ * A self-contained "card unavailable" image, used when an identity can't be
+ * resolved to real artwork (a not-found permalink card, a network failure). It's
+ * an inline SVG so it never needs the network — the same fallback the mock and
+ * the live (Scryfall) resolvers both reach for.
+ */
+const PLACEHOLDER_IMAGE =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="745" height="1040">
+       <rect width="100%" height="100%" rx="36" fill="#2a2622"/>
+       <rect x="20" y="20" width="705" height="1000" rx="24" fill="none"
+             stroke="#b8893a" stroke-width="6"/>
+       <text x="50%" y="50%" fill="#d8d3c4" font-family="serif" font-size="44"
+             text-anchor="middle">card unavailable</text>
+     </svg>`,
+  );
+
+/** Build a placeholder card for an identity that couldn't be resolved. */
+export function placeholderCard(ref: CardRef): Card {
+  return {
+    ...ref,
+    name: `${ref.set} ${ref.collector}`,
+    cardImage: PLACEHOLDER_IMAGE,
+    artImage: PLACEHOLDER_IMAGE,
+  };
+}
 
 /**
  * A card slide of the discussion layout. The full card (vertical region) and the

@@ -1,15 +1,15 @@
 /**
- * Mock card catalog for Phase 1.
+ * Mock card catalog — the built-in demo reel.
  *
- * Scryfall search (#14) and booster (#17) modes — which resolve real card
- * identities to image URLs — land in later phases. Until then the stage and
- * presenter render from this hand-authored catalog of generic, iconic cards
- * (nothing from any episode plan). Card art is © Wizards of the Coast and is
- * hotlinked from Scryfall's image CDN at runtime, exactly as the real Scryfall
- * mode will do — not committed.
+ * The live modes (Scryfall search #14, booster #17) resolve real card identities
+ * to image URLs through `scryfall.ts`. This hand-authored catalog of generic,
+ * iconic cards (nothing from any episode plan) backs the default `/present` demo
+ * reel so it renders with no network. Card art is © Wizards of the Coast and is
+ * hotlinked from Scryfall's image CDN at runtime, exactly as the live modes do —
+ * not committed.
  */
 
-import type { Card, CardRef, LayoutRecipe } from "./recipe.ts";
+import { placeholderCard, type Card, type CardRef, type LayoutRecipe } from "./recipe.ts";
 
 export const MOCK_CARDS: Card[] = [
   {
@@ -96,22 +96,11 @@ export const MOCK_RECIPE: LayoutRecipe = {
   grid: "4x0",
 };
 
-const PLACEHOLDER =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="745" height="1040">
-       <rect width="100%" height="100%" rx="36" fill="#2a2622"/>
-       <rect x="20" y="20" width="705" height="1000" rx="24" fill="none"
-             stroke="#b8893a" stroke-width="6"/>
-       <text x="50%" y="50%" fill="#d8d3c4" font-family="serif" font-size="44"
-             text-anchor="middle">card unavailable</text>
-     </svg>`,
-  );
-
 /**
  * Resolve a recipe's card identities to renderable cards against a catalog.
- * Identities not in the catalog get a placeholder — real resolution arrives with
- * Scryfall/booster modes. Returned array aligns with `recipe.cards` by index.
+ * Identities not in the catalog get a placeholder. The live path (Scryfall /
+ * booster) supplies a real catalog of resolved cards; the default mock catalog
+ * backs the demo reel. Returned array aligns with `recipe.cards` by index.
  */
 export function resolveCards(
   recipe: LayoutRecipe,
@@ -119,12 +108,6 @@ export function resolveCards(
 ): Card[] {
   const byId = new Map(catalog.map((c) => [`${c.set}/${c.collector}`, c]));
   return recipe.cards.map(
-    (ref: CardRef) =>
-      byId.get(`${ref.set}/${ref.collector}`) ?? {
-        ...ref,
-        name: `${ref.set} ${ref.collector}`,
-        cardImage: PLACEHOLDER,
-        artImage: PLACEHOLDER,
-      },
+    (ref: CardRef) => byId.get(`${ref.set}/${ref.collector}`) ?? placeholderCard(ref),
   );
 }
