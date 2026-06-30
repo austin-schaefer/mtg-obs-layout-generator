@@ -20,6 +20,9 @@ layouts/
 components/
   SiteHeader.astro    Wordmark + tagline + gold accent rule
   SiteFooter.astro    Attribution + source link
+  Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
+                      generate, results strip, stage preview, presenter handoff,
+                      edit-controls shell (behavior fills in with the editor, #15)
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
                       L copy permalink), counter
   PresenterApp.tsx    Client entry — picks recipe (mock or ?r= permalink), resolves cards
@@ -34,8 +37,10 @@ lib/
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)
   mock-cards.ts       Phase-1 mock catalog + demo recipe (real Scryfall modes land later)
+  resolve.ts          resolveDeck(mode, input) — the builder's card-resolution seam;
+                      mock-backed now, replaced by Scryfall (#14) / booster (#17)
 pages/
-  index.astro         App-shell landing page
+  index.astro         Landing intro + the builder (creation surface)
   present.astro       Full-viewport presenter (the screen-share surface)
 styles/
   global.css          @import "tailwindcss" + @fontsource fonts + @theme tokens
