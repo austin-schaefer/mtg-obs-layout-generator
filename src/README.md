@@ -20,7 +20,8 @@ layouts/
 components/
   SiteHeader.astro    Wordmark + tagline + gold accent rule
   SiteFooter.astro    Attribution + source link
-  Presenter.tsx       Show surface: keyboard nav, grid toggle, fullscreen, counter
+  Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
+                      L copy permalink), counter
   PresenterApp.tsx    Client entry — picks recipe (mock or ?r= permalink), resolves cards
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
@@ -49,6 +50,11 @@ stage renderer all speak. A `LayoutRecipe` carries resolved card *identities*
 (`set` + `collector`) plus edits (order, exclusions, grid, card-vs-art, title) —
 never image URLs, which are reconstructed at render time. The permalink scheme
 that encodes it is documented in `docs/permalink-scheme.md`.
+
+By default every card produces **two** slides — a full-card slide (read it) and an
+art slide (admire it); `recipe.faces` can narrow a card to one face (the editor,
+#15, writes it). Full cards render at native size (never upscaled); card art is
+scaled to fill its region — both faithful to the pipeline's resize rules.
 
 ## The stage
 

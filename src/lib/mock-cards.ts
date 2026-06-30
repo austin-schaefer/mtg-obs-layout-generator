@@ -86,14 +86,14 @@ export const MOCK_CARDS: Card[] = [
   },
 ];
 
-/** A demo recipe: title slide, a 4-wide grid, two slides shown as art. */
+/** A demo recipe: title slide, then every card as both a full-card and an art
+ *  slide (the default), with a 4-wide grid overview. */
 export const MOCK_RECIPE: LayoutRecipe = {
   v: 1,
   mode: "scry",
   title: "Clock Spinning — Demo Reel",
   cards: MOCK_CARDS.map(({ set, collector }) => ({ set, collector })),
   grid: "4x0",
-  art: [1, 4], // Shivan Dragon + Birds of Paradise shown as landscape art
 };
 
 const PLACEHOLDER =

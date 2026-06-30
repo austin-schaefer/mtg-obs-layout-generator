@@ -77,7 +77,8 @@ const worstCase: LayoutRecipe = {
   order: Array.from({ length: 100 }, (_, i) => 99 - i), // reversed
   excluded: [3, 17, 42, 88],
   grid: "10x0",
-  art: Array.from({ length: 25 }, (_, i) => i * 4), // every 4th shown as art
+  // per-card face codes: cycle card-only / art-only / both
+  faces: Array.from({ length: 100 }, (_, i) => i % 3),
 };
 
 console.log("# Permalink spike — measured at the 100-card cap");

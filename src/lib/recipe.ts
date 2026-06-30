@@ -45,12 +45,21 @@ export interface LayoutRecipe {
   excluded?: number[];
   /** Grid arrangement `WxH`; `0` = auto (e.g. `8x0`, `4x4`). */
   grid?: string;
-  /** Indices shown as art (horizontal) instead of the full card. */
-  art?: number[];
+  /**
+   * Per-card face selection, aligned to `cards`: `0` = full card only, `1` = art
+   * only, `2` = both (a card slide *and* an art slide). Omitted ⇒ both faces for
+   * every card. The editor (#15) writes this; the presenter steps through every
+   * slide it produces.
+   */
+  faces?: number[];
 }
 
 /** Which face of a card a slide presents. */
 export type Face = "card" | "art";
+
+export const FACE_CARD = 0;
+export const FACE_ART = 1;
+export const FACE_BOTH = 2;
 
 export type Slide =
   | { kind: "title"; title: string }
@@ -62,24 +71,28 @@ export const SCHEMA_VERSION = 1;
  * Derive the ordered slide list a presenter steps through.
  *
  * `cards` must align with `recipe.cards` by index (same resolved identities).
- * Applies `order`, drops `excluded`, marks `art` faces, and prepends the title
- * slide. The grid overview is built separately from the same visible cards.
+ * Applies `order`, drops `excluded`, and expands each visible card into its
+ * selected face(s) — by default a card emits both a full-card slide and an art
+ * slide (the full card to read, the art to admire). Prepends the title slide.
+ * The grid overview is built separately from the same visible cards.
  */
 export function recipeToSlides(recipe: LayoutRecipe, cards: Card[]): Slide[] {
   const order = recipe.order ?? cards.map((_, i) => i);
   const excluded = new Set(recipe.excluded ?? []);
-  const art = new Set(recipe.art ?? []);
+  const faces = recipe.faces ?? [];
 
-  const cardSlides: Slide[] = order
-    .filter((i) => i >= 0 && i < cards.length && !excluded.has(i))
-    .map((i) => ({
-      kind: "card" as const,
-      card: cards[i],
-      face: art.has(i) ? ("art" as const) : ("card" as const),
-      index: i,
-    }));
-
-  return [{ kind: "title", title: recipe.title }, ...cardSlides];
+  const slides: Slide[] = [{ kind: "title", title: recipe.title }];
+  for (const i of order) {
+    if (i < 0 || i >= cards.length || excluded.has(i)) continue;
+    const face = faces[i] ?? FACE_BOTH;
+    if (face === FACE_CARD || face === FACE_BOTH) {
+      slides.push({ kind: "card", card: cards[i], face: "card", index: i });
+    }
+    if (face === FACE_ART || face === FACE_BOTH) {
+      slides.push({ kind: "card", card: cards[i], face: "art", index: i });
+    }
+  }
+  return slides;
 }
 
 /** The visible cards (post order/exclude), used for the grid overview. */

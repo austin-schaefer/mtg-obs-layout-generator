@@ -15,6 +15,7 @@ import {
   type Card,
   type LayoutRecipe,
 } from "../lib/recipe.ts";
+import { encodeRecipe } from "../lib/permalink.ts";
 import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
 import GridOverview from "./stage/GridOverview.tsx";
@@ -35,12 +36,26 @@ export default function Presenter({ recipe, cards }: Props) {
   const [index, setIndex] = useState(0);
   const [gridOpen, setGridOpen] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const last = slides.length - 1;
   const step = useCallback(
     (delta: number) => setIndex((i) => Math.min(last, Math.max(0, i + delta))),
     [last],
   );
+
+  const copyPermalink = useCallback(() => {
+    const url = `${window.location.origin}${window.location.pathname}?r=${encodeRecipe(recipe)}`;
+    const done = () => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(() => {});
+    } else {
+      done();
+    }
+  }, [recipe]);
 
   const toggleFullscreen = useCallback(() => {
     const el = rootRef.current;
@@ -58,6 +73,8 @@ export default function Presenter({ recipe, cards }: Props) {
         setGridOpen((g) => !g);
       } else if (e.key === "f" || e.key === "F") {
         toggleFullscreen();
+      } else if (e.key === "l" || e.key === "L") {
+        copyPermalink();
       } else if (e.key === "Escape") {
         setGridOpen(false);
         return; // let the browser also exit fullscreen
@@ -73,7 +90,7 @@ export default function Presenter({ recipe, cards }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, toggleFullscreen]);
+  }, [step, toggleFullscreen, copyPermalink]);
 
   const overlay: Record<string, string> = {
     position: "absolute",
@@ -123,9 +140,32 @@ export default function Presenter({ recipe, cards }: Props) {
             textShadow: "0 1px 4px rgba(0,0,0,0.8)",
           }}
         >
-          ← → step · G grid · F fullscreen
+          ← → step · G grid · F fullscreen · L copy link
         </div>
       )}
+
+      {/* Permalink affordance — a copyable share link. The full share UI lives in
+          the builder (#12/#16); this makes the encoded recipe tangible now. */}
+      <button
+        type="button"
+        onClick={copyPermalink}
+        title="Copy a permalink that reproduces this exact layout"
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "14px",
+          padding: "5px 10px",
+          fontFamily: 'var(--font-sans, system-ui, sans-serif)',
+          fontSize: "13px",
+          color: "rgba(255,255,255,0.82)",
+          background: "rgba(0,0,0,0.45)",
+          border: "1px solid rgba(255,255,255,0.25)",
+          borderRadius: "6px",
+          cursor: "pointer",
+        }}
+      >
+        {copied ? "Link copied ✓" : "🔗 Copy link"}
+      </button>
     </div>
   );
 }

@@ -31,7 +31,7 @@ const MODE_BY_CODE: Mode[] = ["scry", "boost", "custom"];
 
 /**
  * Compact positional form: `[v, modeCode, title, sets, cards, order, excluded,
- * grid, art]`, where `cards` is `[setIdx, collector][]` against the `sets`
+ * grid, faces]`, where `cards` is `[setIdx, collector][]` against the `sets`
  * dictionary, and absent optional fields are `0` (cheaper than `null`/`[]`).
  */
 type Compact = [
@@ -43,7 +43,7 @@ type Compact = [
   number[] | 0, // order
   number[] | 0, // excluded
   string | 0, // grid
-  number[] | 0, // art
+  number[] | 0, // faces (per-card face codes)
 ];
 
 function toCompact(recipe: LayoutRecipe): Compact {
@@ -68,12 +68,12 @@ function toCompact(recipe: LayoutRecipe): Compact {
     recipe.order ?? 0,
     recipe.excluded ?? 0,
     recipe.grid ?? 0,
-    recipe.art ?? 0,
+    recipe.faces ?? 0,
   ];
 }
 
 function fromCompact(c: Compact): LayoutRecipe {
-  const [v, modeCode, title, sets, cards, order, excluded, grid, art] = c;
+  const [v, modeCode, title, sets, cards, order, excluded, grid, faces] = c;
   const recipe: LayoutRecipe = {
     v,
     mode: MODE_BY_CODE[modeCode] ?? "scry",
@@ -86,7 +86,7 @@ function fromCompact(c: Compact): LayoutRecipe {
   if (order !== 0) recipe.order = order;
   if (excluded !== 0) recipe.excluded = excluded;
   if (grid !== 0) recipe.grid = grid;
-  if (art !== 0) recipe.art = art;
+  if (faces !== 0) recipe.faces = faces;
   return recipe;
 }
 

@@ -23,7 +23,7 @@ The `LayoutRecipe` (`src/lib/recipe.ts`) — not image URLs, only resolved card
 | `order` | index permutation (omitted when identity) |
 | `excluded` | dropped indices |
 | `grid` | `WxH` arrangement, `0` = auto |
-| `art` | indices shown as art instead of the full card |
+| `faces` | per-card face codes (`0` card-only, `1` art-only, `2` both); omitted ⇒ both for every card |
 
 Image URLs are reconstructed at render time (Scryfall / booster / mock), which is
 what keeps the URL deterministic and small.
@@ -48,10 +48,10 @@ From `scripts/permalink-spike.ts` (`node --experimental-strip-types`):
 | Scenario | naive base64url | lz-string encoded | full `/present?r=` URL |
 |---|--:|--:|--:|
 | Best case — one set, no edits | 4206 | 381 | 423 |
-| Worst case — 16 sets, alnum collectors, full edits | 4950 | 1109 | 1151 |
+| Worst case — 16 sets, alnum collectors, full edits | 5123 | 1128 | 1170 |
 
 A naive base64 of the JSON (~4–5k chars) **exceeds** a conservative ~2000-char URL
-budget; lz-string brings the worst case to **1151 chars**, comfortably shareable
+budget; lz-string brings the worst case to **1170 chars**, comfortably shareable
 and pasteable everywhere. That's why the `lz-string` dependency is warranted.
 
 ## Notes for the full implementation (#16)

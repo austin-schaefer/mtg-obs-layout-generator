@@ -36,13 +36,36 @@ const fullStage: Record<string, string> = {
   height: `${STAGE_HEIGHT}px`,
 };
 
-/** A fit-within image centered in its region; `auto`+`max` never upscales. */
+/**
+ * An image centered in its region. Two fit modes mirror the pipeline
+ * (`calculate_resize_geometry`):
+ *  - `"native"` — full cards, already the right size: shown at native px,
+ *    only shrunk if larger than the max, never upscaled (`auto` + `max`).
+ *  - `"fill"` — card art: scaled to fill the max box, up *or* down, preserving
+ *    aspect (the pipeline's `too_small` branch upscales small art to the max).
+ */
 function RegionImage(props: {
   src: string;
   alt: string;
   region: Box;
   max: { w: number; h: number };
+  fit: "native" | "fill";
 }) {
+  const imgStyle: Record<string, string> =
+    props.fit === "fill"
+      ? {
+          width: `${props.max.w}px`,
+          height: `${props.max.h}px`,
+          objectFit: "contain",
+          display: "block",
+        }
+      : {
+          maxWidth: `${props.max.w}px`,
+          maxHeight: `${props.max.h}px`,
+          width: "auto",
+          height: "auto",
+          display: "block",
+        };
   return (
     <div
       style={{
@@ -52,17 +75,7 @@ function RegionImage(props: {
         justifyContent: "center",
       }}
     >
-      <img
-        src={props.src}
-        alt={props.alt}
-        style={{
-          maxWidth: `${props.max.w}px`,
-          maxHeight: `${props.max.h}px`,
-          width: "auto",
-          height: "auto",
-          display: "block",
-        }}
-      />
+      <img src={props.src} alt={props.alt} style={imgStyle} />
     </div>
   );
 }
@@ -136,6 +149,7 @@ export default function Stage({ slide }: { slide: Slide }) {
           alt={`${card.name} art`}
           region={HORIZONTAL_REGION}
           max={HORIZONTAL_MAX}
+          fit="fill"
         />
       ) : (
         <RegionImage
@@ -143,6 +157,7 @@ export default function Stage({ slide }: { slide: Slide }) {
           alt={card.name}
           region={VERTICAL_REGION}
           max={VERTICAL_MAX}
+          fit="native"
         />
       )}
       <img src={frame.src} alt="" style={fullStage} />
