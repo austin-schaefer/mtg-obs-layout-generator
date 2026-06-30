@@ -54,16 +54,24 @@ export interface LayoutRecipe {
   faces?: number[];
 }
 
-/** Which face of a card a slide presents. */
-export type Face = "card" | "art";
-
 export const FACE_CARD = 0;
 export const FACE_ART = 1;
 export const FACE_BOTH = 2;
 
+/**
+ * A card slide of the discussion layout. The full card (vertical region) and the
+ * art (horizontal region) sit side by side and don't overlap, so one slide shows
+ * both at once by default; `showCard` / `showArt` let the editor narrow to one.
+ */
 export type Slide =
   | { kind: "title"; title: string }
-  | { kind: "card"; card: Card; face: Face; index: number };
+  | {
+      kind: "card";
+      card: Card;
+      showCard: boolean;
+      showArt: boolean;
+      index: number;
+    };
 
 export const SCHEMA_VERSION = 1;
 
@@ -71,10 +79,10 @@ export const SCHEMA_VERSION = 1;
  * Derive the ordered slide list a presenter steps through.
  *
  * `cards` must align with `recipe.cards` by index (same resolved identities).
- * Applies `order`, drops `excluded`, and expands each visible card into its
- * selected face(s) — by default a card emits both a full-card slide and an art
- * slide (the full card to read, the art to admire). Prepends the title slide.
- * The grid overview is built separately from the same visible cards.
+ * Applies `order`, drops `excluded`, and emits one slide per visible card that
+ * renders the full card *and* its art together (the default). `recipe.faces`
+ * can narrow a card to card-only or art-only. Prepends the title slide. The grid
+ * overview is built separately from the same visible cards.
  */
 export function recipeToSlides(recipe: LayoutRecipe, cards: Card[]): Slide[] {
   const order = recipe.order ?? cards.map((_, i) => i);
@@ -85,12 +93,13 @@ export function recipeToSlides(recipe: LayoutRecipe, cards: Card[]): Slide[] {
   for (const i of order) {
     if (i < 0 || i >= cards.length || excluded.has(i)) continue;
     const face = faces[i] ?? FACE_BOTH;
-    if (face === FACE_CARD || face === FACE_BOTH) {
-      slides.push({ kind: "card", card: cards[i], face: "card", index: i });
-    }
-    if (face === FACE_ART || face === FACE_BOTH) {
-      slides.push({ kind: "card", card: cards[i], face: "art", index: i });
-    }
+    slides.push({
+      kind: "card",
+      card: cards[i],
+      showCard: face === FACE_CARD || face === FACE_BOTH,
+      showArt: face === FACE_ART || face === FACE_BOTH,
+      index: i,
+    });
   }
   return slides;
 }

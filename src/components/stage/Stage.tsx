@@ -20,6 +20,7 @@ import {
   HORIZONTAL_MAX,
   VERTICAL_REGION,
   VERTICAL_MAX,
+  HOST_BOXES,
   boxStyle,
   type Box,
 } from "../../lib/stage.ts";
@@ -139,19 +140,11 @@ export default function Stage({ slide }: { slide: Slide }) {
     return <TitleSlide title={slide.title} />;
   }
 
-  const { card, face } = slide;
+  const { card, showCard, showArt } = slide;
   return (
     <>
       <img src={marble.src} alt="" style={fullStage} />
-      {face === "art" ? (
-        <RegionImage
-          src={card.artImage}
-          alt={`${card.name} art`}
-          region={HORIZONTAL_REGION}
-          max={HORIZONTAL_MAX}
-          fit="fill"
-        />
-      ) : (
+      {showCard && (
         <RegionImage
           src={card.cardImage}
           alt={card.name}
@@ -160,6 +153,20 @@ export default function Stage({ slide }: { slide: Slide }) {
           fit="native"
         />
       )}
+      {showArt && (
+        <RegionImage
+          src={card.artImage}
+          alt={`${card.name} art`}
+          region={HORIZONTAL_REGION}
+          max={HORIZONTAL_MAX}
+          fit="fill"
+        />
+      )}
+      {/* Plain white backing under each host-cam box (the OBS webcam overlays
+          here on stream); painted over marble/art bleed, beneath the frame. */}
+      {HOST_BOXES.map((box, i) => (
+        <div key={i} style={{ ...boxStyle(box), background: "#ffffff" }} />
+      ))}
       <img src={frame.src} alt="" style={fullStage} />
     </>
   );

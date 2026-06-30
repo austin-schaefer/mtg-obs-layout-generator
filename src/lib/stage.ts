@@ -37,6 +37,18 @@ export const VERTICAL_MAX = { w: 850, h: 1250 };
 /** Grid montage cap, composited centered on the title background. */
 export const GRID_MAX = { w: 2500, h: 1400 };
 
+/**
+ * Host-cam boxes in the discussion frame. In the old PNG pipeline these were
+ * punched to transparency (`TRANSPARENCY_RECT_1/2`) so an OBS source showed
+ * through; on the live surface there's nothing behind, so we paint them plain
+ * white as a clean backing under the frame. Coords are the transparency rects:
+ * rect1 `1010,858 1489,1337`, rect2 `2008,858 2487,1337`.
+ */
+export const HOST_BOXES: Box[] = [
+  { x: 1010, y: 858, w: 479, h: 479 },
+  { x: 2008, y: 858, w: 479, h: 479 },
+];
+
 /** Absolute-position a box in 2560×1440 space. */
 export function boxStyle(box: Box): Record<string, string> {
   return {

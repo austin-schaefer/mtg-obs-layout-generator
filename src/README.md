@@ -51,10 +51,12 @@ stage renderer all speak. A `LayoutRecipe` carries resolved card *identities*
 never image URLs, which are reconstructed at render time. The permalink scheme
 that encodes it is documented in `docs/permalink-scheme.md`.
 
-By default every card produces **two** slides — a full-card slide (read it) and an
-art slide (admire it); `recipe.faces` can narrow a card to one face (the editor,
-#15, writes it). Full cards render at native size (never upscaled); card art is
-scaled to fill its region — both faithful to the pipeline's resize rules.
+Each card is **one** discussion slide showing the full card (vertical region) and
+its art (horizontal region) side by side; `recipe.faces` can narrow a card to
+card-only or art-only (the editor, #15, writes it). Full cards render at native
+size (never upscaled); card art is scaled to fill its region — both faithful to
+the pipeline's resize rules. The two host-cam boxes are painted plain white under
+the frame (the live surface has no transparency holes; webcams overlay in OBS).
 
 ## The stage
 
