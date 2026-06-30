@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import Builder from "../components/Builder.tsx";
 ---
 
 <BaseLayout>
@@ -17,24 +18,16 @@ import SiteFooter from "../components/SiteFooter.astro";
         the site and arrow-key through broadcast-ready slides — live HTML on a
         16:9 stage. No files, no OBS compositing.
       </p>
-
-      <div
-        class="mt-8 rounded-lg border border-rule bg-gradient-to-b from-panel-from to-panel-to p-5"
-      >
-        <p class="font-sans text-[15px] text-ink-soft">
-          The live stage and presenter are taking shape. Open the demo reel — a
-          mock set of cards on the broadcast stage — and arrow-key through it.
-        </p>
-        <div class="mt-4">
-          <a
-            href="/present"
-            class="inline-block rounded-md border border-rule-strong bg-paper px-4 py-2 font-sans text-[15px] font-semibold text-maroon shadow-sm transition-colors hover:border-gold"
-          >
-            Open the presenter demo →
-          </a>
-        </div>
-      </div>
     </section>
+
+    <div class="mt-8">
+      <Builder client:load />
+    </div>
+
+    <p class="mt-6 font-sans text-[14px] text-ink-muted">
+      Just exploring? <a href="/present">Open the demo reel</a> — a mock set of
+      cards on the broadcast stage you can arrow-key through.
+    </p>
   </main>
 
   <SiteFooter />
