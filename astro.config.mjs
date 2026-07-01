@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // Tailwind v4 is wired CSS-first through its Vite plugin — no tailwind.config.js.
 // Preact is the interactive island framework (epic decision, #19).
 export default defineConfig({
-  site: "https://obs-layouts.netlify.app",
+  site: "https://mtg-obs-generator.netlify.app",
   integrations: [preact()],
   vite: {
     plugins: [tailwindcss()],
