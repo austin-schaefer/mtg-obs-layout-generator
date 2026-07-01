@@ -4,10 +4,11 @@
  * broadcast stage and hand off to the presenter.
  *
  * Card resolution goes through `resolveDeck` — a live Scryfall search (#14) or a
- * booster roll (#17) — and the edit-controls panel is a structural placeholder
- * the layout editor (#15) fills in with behavior.
+ * booster roll (#17) — and the edit-controls panel is the layout editor (#15):
+ * reorder, exclude, grid, and per-card face, all previewing live.
  * What's live today: mode selection, per-mode inputs, generate, the results
- * strip, the stage preview with slide stepping, and the permalink handoff.
+ * strip, the stage + grid preview with slide stepping, the layout editor, and
+ * the permalink handoff.
  *
  * UI chrome uses the design-system Tailwind tokens; the stage preview reuses the
  * exact broadcast components (<StageFrame>/<Stage>) the presenter renders, so
@@ -17,7 +18,7 @@
 import { useCallback, useMemo, useState } from "preact/hooks";
 import {
   recipeToSlides,
-  visibleCards,
+  visibleIndices,
   SCHEMA_VERSION,
   type LayoutRecipe,
   type Mode,
@@ -26,8 +27,12 @@ import { resolveCards } from "../lib/mock-cards.ts";
 import { resolveDeck, ResolveError } from "../lib/resolve.ts";
 import type { Card } from "../lib/recipe.ts";
 import { encodeRecipe } from "../lib/permalink.ts";
+import { usePreloadImages } from "../lib/stage.ts";
 import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
+import GridOverview from "./stage/GridOverview.tsx";
+import LayoutEditor from "./LayoutEditor.tsx";
+import Presenter from "./Presenter.tsx";
 
 const DEFAULT_GRID = "4x0";
 
@@ -83,6 +88,8 @@ export default function Builder() {
   // the preview renders the actual artwork rather than re-resolving from a catalog.
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [viewGrid, setViewGrid] = useState(false);
+  const [presenting, setPresenting] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -97,10 +104,23 @@ export default function Builder() {
     () => (recipe ? recipeToSlides(recipe, cards) : []),
     [recipe, cards],
   );
+  // Visible cards for the grid + strip, each paired with its real `cards` index
+  // so jumping and slide-lookup key off identity, not display position.
   const thumbs = useMemo(
-    () => (recipe ? visibleCards(recipe, cards) : []),
+    () =>
+      recipe
+        ? visibleIndices(recipe, cards.length).map((i) => ({
+            card: cards[i],
+            index: i,
+          }))
+        : [],
     [recipe, cards],
   );
+  const gridCards = useMemo(() => thumbs.map((t) => t.card), [thumbs]);
+
+  // Warm the cache for the whole resolved deck as soon as it's generated, so the
+  // preview steps instantly and Present starts with every image already loaded.
+  usePreloadImages(cards.flatMap((c) => [c.cardImage, c.artImage]));
 
   const generate = useCallback(async () => {
     setError(null);
@@ -132,8 +152,6 @@ export default function Builder() {
     setRecipe((r) => (r ? { ...r, title } : r));
   }, []);
 
-  const permalinkPath = recipe ? `/present?r=${encodeRecipe(recipe)}` : "#";
-
   const copyLink = useCallback(() => {
     if (!recipe) return;
     const url = `${window.location.origin}/present?r=${encodeRecipe(recipe)}`;
@@ -151,11 +169,15 @@ export default function Builder() {
   const last = slides.length - 1;
   const step = (delta: number) =>
     setSlideIndex((i) => Math.min(last, Math.max(0, i + delta)));
+  // Jump the preview to a card's slide (by real `cards` index), leaving grid view.
   const jumpToCard = (cardIndex: number) => {
     const at = slides.findIndex(
       (s) => s.kind === "card" && s.index === cardIndex,
     );
-    if (at >= 0) setSlideIndex(at);
+    if (at >= 0) {
+      setViewGrid(false);
+      setSlideIndex(at);
+    }
   };
 
   return (
@@ -204,10 +226,21 @@ export default function Builder() {
 
         <p class="mt-3 text-[14px] text-ink-soft">{activeMode.hint}</p>
 
-        <div class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-stretch">
+        {/* A real <form> so the browser remembers past queries: a named field
+            submitted on Enter/Generate is what populates its autofill history.
+            The name is per-mode so scry queries and set codes keep separate lists. */}
+        <form
+          class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-stretch"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!pending && !activeMode.comingSoon) generate();
+          }}
+        >
           {activeMode.placeholder ? (
             <input
               type="text"
+              name={`obs-query-${mode}`}
+              autocomplete="on"
               value={inputs[mode]}
               placeholder={activeMode.placeholder}
               onInput={(e) =>
@@ -216,9 +249,6 @@ export default function Builder() {
                   [mode]: (e.target as HTMLInputElement).value,
                 }))
               }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !pending) generate();
-              }}
               class="w-full flex-1 rounded-md border border-rule-strong bg-paper px-3 py-2 text-[14px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
               aria-label={`${activeMode.label} input`}
             />
@@ -229,14 +259,13 @@ export default function Builder() {
           )}
 
           <button
-            type="button"
-            onClick={generate}
+            type="submit"
             disabled={pending || activeMode.comingSoon}
             class="rounded-md border border-rule-strong bg-paper px-5 py-2 text-[15px] font-semibold text-maroon shadow-sm transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-50 tablet:whitespace-nowrap"
           >
             {pending ? "Generating…" : "Generate"}
           </button>
-        </div>
+        </form>
 
         {error && (
           <p class="mt-3 text-[14px] font-semibold text-maroon" role="alert">
@@ -265,7 +294,11 @@ export default function Builder() {
 
             <div class="relative mt-3 aspect-video w-full overflow-hidden rounded-lg border border-rule-strong bg-black shadow-sm">
               <StageFrame>
-                <Stage slide={slides[Math.min(slideIndex, last)]} />
+                {viewGrid ? (
+                  <GridOverview cards={gridCards} arrangement={recipe.grid} />
+                ) : (
+                  <Stage slide={slides[Math.min(slideIndex, last)]} />
+                )}
               </StageFrame>
             </div>
 
@@ -275,7 +308,7 @@ export default function Builder() {
                 <button
                   type="button"
                   onClick={() => step(-1)}
-                  disabled={slideIndex <= 0}
+                  disabled={viewGrid || slideIndex <= 0}
                   class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[15px] font-semibold text-ink-soft transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous slide"
                 >
@@ -284,15 +317,30 @@ export default function Builder() {
                 <button
                   type="button"
                   onClick={() => step(1)}
-                  disabled={slideIndex >= last}
+                  disabled={viewGrid || slideIndex >= last}
                   class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[15px] font-semibold text-ink-soft transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next slide"
                 >
                   →
                 </button>
                 <span class="ml-1 text-[14px] tabular-nums text-ink-muted">
-                  {Math.min(slideIndex, last) + 1} / {slides.length}
+                  {viewGrid
+                    ? `Grid · ${gridCards.length}`
+                    : `${Math.min(slideIndex, last) + 1} / ${slides.length}`}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setViewGrid((g) => !g)}
+                  aria-pressed={viewGrid}
+                  class={[
+                    "ml-1 whitespace-nowrap rounded-md border px-3 py-1.5 text-[14px] font-semibold transition-colors",
+                    viewGrid
+                      ? "border-maroon bg-maroon text-paper"
+                      : "border-rule-strong bg-paper text-ink-soft hover:border-gold",
+                  ].join(" ")}
+                >
+                  ▦ Grid
+                </button>
               </div>
 
               <div class="flex items-center gap-2">
@@ -303,12 +351,13 @@ export default function Builder() {
                 >
                   {copied ? "Link copied ✓" : "🔗 Copy link"}
                 </button>
-                <a
-                  href={permalinkPath}
-                  class="whitespace-nowrap rounded-md border border-rule-strong bg-maroon px-4 py-1.5 text-[14px] font-semibold text-paper no-underline shadow-sm transition-colors hover:border-gold"
+                <button
+                  type="button"
+                  onClick={() => setPresenting(true)}
+                  class="whitespace-nowrap rounded-md border border-rule-strong bg-maroon px-4 py-1.5 text-[14px] font-semibold text-paper shadow-sm transition-colors hover:border-gold"
                 >
-                  Open presenter →
-                </a>
+                  ▶ Present
+                </button>
               </div>
             </div>
 
@@ -318,11 +367,11 @@ export default function Builder() {
                 {thumbs.length} card{thumbs.length === 1 ? "" : "s"}
               </h2>
               <ul class="mt-2 flex flex-wrap gap-2">
-                {thumbs.map((card, i) => (
-                  <li key={`${card.set}-${card.collector}-${i}`}>
+                {thumbs.map(({ card, index }) => (
+                  <li key={`${card.set}-${card.collector}-${index}`}>
                     <button
                       type="button"
-                      onClick={() => jumpToCard(i)}
+                      onClick={() => jumpToCard(index)}
                       title={card.name}
                       class="block overflow-hidden rounded-md border border-rule bg-paper transition-colors hover:border-gold focus:border-gold focus:outline-none"
                     >
@@ -339,62 +388,34 @@ export default function Builder() {
             </div>
           </section>
 
-          {/* Edit-controls shell — behavior arrives in the layout editor (#15). */}
+          {/* Layout editor (#15) — reorder / exclude / grid / card-vs-art. */}
           <aside
             class="self-start rounded-lg border border-rule bg-paper/70 p-4"
             aria-label="Edit controls"
           >
             <h2 class="font-serif text-[16px] font-semibold text-ink">Edit</h2>
-            <p class="mt-1 text-[13px] text-ink-muted">
-              Reorder, exclude, grid, and card-vs-art controls land with the
-              layout editor.
-            </p>
-
-            <fieldset
-              disabled
-              class="mt-4 flex flex-col gap-4 opacity-60"
-              aria-label="Editing controls (coming soon)"
-            >
-              <label class="block">
-                <span class="text-[13px] font-semibold text-ink-soft">
-                  Grid arrangement
-                </span>
-                <input
-                  type="text"
-                  value={recipe.grid ?? DEFAULT_GRID}
-                  class="mt-1 w-full rounded-md border border-rule-strong bg-paper px-3 py-2 text-[14px] text-ink"
-                />
-                <span class="mt-1 block text-[12px] text-ink-muted">
-                  Columns × rows (0 = auto), e.g. 4x4 or 8x0.
-                </span>
-              </label>
-
-              <div>
-                <span class="text-[13px] font-semibold text-ink-soft">
-                  Cards
-                </span>
-                <p class="mt-1 text-[12px] text-ink-muted">
-                  Drag to reorder · click to exclude.
-                </p>
-              </div>
-
-              <div>
-                <span class="text-[13px] font-semibold text-ink-soft">
-                  Per-slide face
-                </span>
-                <div class="mt-1 flex gap-1">
-                  {["Card", "Art", "Both"].map((f) => (
-                    <span
-                      key={f}
-                      class="rounded border border-rule px-2 py-1 text-[12px] text-ink-muted"
-                    >
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </fieldset>
+            <div class="mt-4">
+              <LayoutEditor
+                recipe={recipe}
+                cards={cards}
+                onChange={setRecipe}
+                onJump={jumpToCard}
+              />
+            </div>
           </aside>
+        </div>
+      )}
+
+      {/* In-app presenter: a fullscreen overlay over the builder rather than a
+          navigation, so presenting never loses the deck you're editing. Esc (or
+          the overlay's Exit button) returns here with everything intact. */}
+      {presenting && recipe && (
+        <div class="fixed inset-0 z-50">
+          <Presenter
+            recipe={recipe}
+            cards={cards}
+            onExit={() => setPresenting(false)}
+          />
         </div>
       )}
     </div>

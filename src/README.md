@@ -21,12 +21,21 @@ components/
   SiteHeader.astro    Wordmark + tagline
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
-                      generate, results strip, stage preview, presenter handoff,
-                      edit-controls shell (behavior fills in with the editor, #15).
+                      generate, results strip, stage + grid preview, layout
+                      editor (#15), a real <form> query field (per-mode name so
+                      the browser remembers past queries), and an in-app
+                      "Present" overlay (mounts
+                      <Presenter> fullscreen — no navigation, so editing work is
+                      never lost; Esc returns to the builder).
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
+  LayoutEditor.tsx    Hand-edit panel (#15): drag-reorder (insertion-line drop
+                      indicator + ▲▼ fallback), exclude, grid WxH, and per-card
+                      face (card / art / both) — writes the recipe live.
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
-                      Esc close grid / exit fullscreen · L copy permalink), counter
+                      L copy permalink), counter. Esc steps back out (grid →
+                      fullscreen → onExit); onExit set only for the builder overlay.
+                      In fullscreen all overlay chrome is hidden — just the stage.
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
                       decodes the recipe and re-hydrates its card identities into
                       real artwork via Scryfall (loading / error states)
@@ -36,8 +45,12 @@ components/
     GridOverview.tsx  Montage view — all visible cards tiled in a WxH grid
 lib/
   recipe.ts           Shared layout data model: Mode / CardRef / Card / LayoutRecipe;
-                      recipeToSlides() / visibleCards() derive what's shown
-  stage.ts            2560×1440 coordinate system + regions + useStageScale() hook
+                      recipeToSlides() / visibleCards() / visibleIndices() derive
+                      what's shown; moveCard / toggleExcluded / setFace / setGrid are
+                      the editor's pure recipe→recipe edits
+  stage.ts            2560×1440 coordinate system + regions + useStageScale() +
+                      usePreloadImages() (warms the deck's images so slides don't
+                      load mid-presentation)
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)
   mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
