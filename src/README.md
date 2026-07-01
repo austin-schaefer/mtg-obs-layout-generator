@@ -22,29 +22,34 @@ layouts/
                       header in netlify.toml; robots.txt intentionally omitted).
 components/
   SiteHeader.astro    Wordmark + tagline
-  SiteFooter.astro    Attribution + source link
-  Builder.tsx         Creation surface (#12/#26): source picker, per-mode inputs,
-                      Generate (seeds the deck), big stage preview of the selected
-                      slide + stepper, the deck editor, a real <form> query field
-                      (per-mode name so the browser remembers past queries), and an
-                      in-app "Present" overlay (mounts <Presenter> fullscreen — no
-                      navigation, so editing work is never lost; Esc returns).
-                      The Scryfall field defaults to a filter prefix (oldest paper
-                      printing, release order, minus digital/un/Universes Beyond).
-                      A generated deck is bookended by the branded keynote card:
-                      keynote → title → cards → grid → keynote. The "Start from
-                      scratch" source skips resolution and seeds just keynote →
-                      title, so a host builds the rest by hand. Accepts optional
-                      initialRecipe / initialCatalog props so it can open straight
-                      into an existing deck (the present→edit handoff below).
-  DeckEditor.tsx      The one list that is the show (#26): a row per slide
+  Builder.tsx         Creation surface (#12/#26). Two phases: an *entry* composer
+                      (source picker + per-mode input + Generate, centered) shown
+                      only until a deck exists, then a wide *building* view — the
+                      deck tiles on the left are the editing surface, a big
+                      read-only preview on the right mirrors the selected tile and
+                      stays sticky while the deck scrolls. There is no persistent
+                      composer while building (regenerating there would blow the
+                      deck away); "← Start over" (with confirm) is the one way back.
+                      A real <form> query field (per-mode name so the browser
+                      remembers past queries) and an in-app "Present" overlay (mounts
+                      <Presenter> fullscreen — no navigation, so editing work is
+                      never lost; Esc returns). The Scryfall field defaults to a
+                      filter prefix (oldest paper printing, release order, minus
+                      digital/un/Universes Beyond). A generated deck is bookended by
+                      the branded keynote card: keynote → title → cards → grid →
+                      keynote. The "Start from scratch" source skips resolution and
+                      seeds just keynote → title. Accepts optional initialRecipe /
+                      initialCatalog props so it can open straight into an existing
+                      deck (the present→edit handoff below).
+  DeckEditor.tsx      The one list that is the show (#26): a tile per slide
                       (keynote / text / card / grid). Drag-reorder (insertion-line
                       drop indicator + ▲▼ fallback), duplicate, remove, select
                       (drives the preview); edit text in place, pick a card's face
-                      (card / art / both — a tall thumbnail with the name, face
-                      control, and an optional `+ Caption` field stacked to its right
-                      and filling the column), set a grid's WxH (blank = a
-                      card-count-aware default, `autoColumns`). A sticky bottom bar
+                      (card / art / both). The row-action buttons live in each tile's
+                      header row, so a card tile's face control and optional
+                      `+ Caption` field run the full tile width beneath a tall
+                      thumbnail. Set a grid's WxH (blank = a card-count-aware
+                      default, `autoColumns`). A sticky bottom bar
                       adds a Card / Text / Keynote / Grid after the selected slide
                       (pinned so a long deck needs no scroll) — writes recipe live.
                       Adding a card is two-step when it has several printings:

@@ -216,6 +216,19 @@ export default function Builder({
     }
   }, [recipe]);
 
+  // Return to the source picker. There's no persistent composer while building
+  // (re-generating there would silently blow away the deck), so this is the one
+  // deliberate way back — and it confirms before discarding real work.
+  const startOver = useCallback(() => {
+    if (recipe && !window.confirm("Start over? This clears the current deck.")) {
+      return;
+    }
+    setRecipe(null);
+    setCatalog([]);
+    setError(null);
+    setSlideIndex(0);
+  }, [recipe]);
+
   const last = slides.length - 1;
   const current = Math.min(slideIndex, Math.max(0, last));
   const step = (delta: number) =>
@@ -223,166 +236,194 @@ export default function Builder({
 
   return (
     <div class="font-sans">
-      {/* ── Composer bar: source picker + per-mode input + generate ───────── */}
-      <section
-        class="rounded-lg border border-rule bg-gradient-to-b from-panel-from to-panel-to p-5 tablet:p-6"
-        aria-label="Build a layout"
-      >
-        <div
-          class="inline-flex flex-wrap gap-1 rounded-md border border-rule-strong bg-paper/60 p-1"
-          role="tablist"
-          aria-label="Card source"
+      {/* ── Entry: pick a source and Generate. This is the *only* place the
+          composer lives — once a deck exists you're building, and there's no
+          persistent top bar to accidentally regenerate over your work. Centered
+          and narrow so it reads as a deliberate first step. ─────────────────── */}
+      {!recipe && (
+        <section
+          class="mx-auto max-w-3xl rounded-lg border border-rule bg-gradient-to-b from-panel-from to-panel-to p-5 tablet:p-6"
+          aria-label="Build a layout"
         >
-          {MODES.map((m) => {
-            const selected = m.id === mode;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                disabled={m.comingSoon}
-                onClick={() => {
-                  setMode(m.id);
-                  setError(null);
-                }}
-                class={[
-                  "rounded px-3 py-1.5 text-[15px] font-semibold transition-colors",
-                  selected
-                    ? "bg-maroon text-paper shadow-sm"
-                    : "text-ink-soft hover:text-maroon",
-                  m.comingSoon ? "cursor-not-allowed opacity-50" : "",
-                ].join(" ")}
-              >
-                {m.label}
-                {m.comingSoon && (
-                  <span class="ml-1.5 align-middle text-[11px] font-normal uppercase tracking-wide text-ink-muted">
-                    soon
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+          <div
+            class="inline-flex flex-wrap gap-1 rounded-md border border-rule-strong bg-paper/60 p-1"
+            role="tablist"
+            aria-label="Card source"
+          >
+            {MODES.map((m) => {
+              const selected = m.id === mode;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  disabled={m.comingSoon}
+                  onClick={() => {
+                    setMode(m.id);
+                    setError(null);
+                  }}
+                  class={[
+                    "rounded px-3 py-1.5 text-[15px] font-semibold transition-colors",
+                    selected
+                      ? "bg-maroon text-paper shadow-sm"
+                      : "text-ink-soft hover:text-maroon",
+                    m.comingSoon ? "cursor-not-allowed opacity-50" : "",
+                  ].join(" ")}
+                >
+                  {m.label}
+                  {m.comingSoon && (
+                    <span class="ml-1.5 align-middle text-[11px] font-normal uppercase tracking-wide text-ink-muted">
+                      soon
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-        {/* A real <form> so the browser remembers past queries: a named field
-            submitted on Enter/Generate is what populates its autofill history.
-            The name is per-mode so scry queries and set codes keep separate lists. */}
-        <form
-          class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-stretch"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!pending && !activeMode.comingSoon) generate();
-          }}
-        >
-          {activeMode.placeholder ? (
-            <input
-              type="text"
-              name={`obs-query-${mode}`}
-              autocomplete="on"
-              value={inputs[mode]}
-              placeholder={activeMode.placeholder}
-              onInput={(e) =>
-                setInputs((v) => ({
-                  ...v,
-                  [mode]: (e.target as HTMLInputElement).value,
-                }))
-              }
-              class="w-full flex-1 rounded-md border border-rule-strong bg-paper px-3 py-2 text-[14px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
-              aria-label={`${activeMode.label} input`}
-            />
-          ) : (
-            <p class="flex-1 rounded-md border border-dashed border-rule-strong bg-paper/50 px-3 py-2 text-[14px] text-ink-muted">
-              Upload your own paired card + art images — coming soon.
+          {/* A real <form> so the browser remembers past queries: a named field
+              submitted on Enter/Generate is what populates its autofill history.
+              The name is per-mode so scry queries and set codes keep separate lists. */}
+          <form
+            class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-stretch"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!pending && !activeMode.comingSoon) generate();
+            }}
+          >
+            {activeMode.placeholder ? (
+              <input
+                type="text"
+                name={`obs-query-${mode}`}
+                autocomplete="on"
+                value={inputs[mode]}
+                placeholder={activeMode.placeholder}
+                onInput={(e) =>
+                  setInputs((v) => ({
+                    ...v,
+                    [mode]: (e.target as HTMLInputElement).value,
+                  }))
+                }
+                class="w-full flex-1 rounded-md border border-rule-strong bg-paper px-3 py-2 text-[14px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
+                aria-label={`${activeMode.label} input`}
+              />
+            ) : (
+              <p class="flex-1 rounded-md border border-dashed border-rule-strong bg-paper/50 px-3 py-2 text-[14px] text-ink-muted">
+                Upload your own paired card + art images — coming soon.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={pending || activeMode.comingSoon}
+              class="rounded-md border border-rule-strong bg-paper px-5 py-2 text-[15px] font-semibold text-maroon shadow-sm transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-50 tablet:whitespace-nowrap"
+            >
+              {pending ? "Generating…" : "Generate"}
+            </button>
+          </form>
+
+          {error && (
+            <p class="mt-3 text-[14px] font-semibold text-maroon" role="alert">
+              {error}
             </p>
           )}
+        </section>
+      )}
 
-          <button
-            type="submit"
-            disabled={pending || activeMode.comingSoon}
-            class="rounded-md border border-rule-strong bg-paper px-5 py-2 text-[15px] font-semibold text-maroon shadow-sm transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-50 tablet:whitespace-nowrap"
-          >
-            {pending ? "Generating…" : "Generate"}
-          </button>
-        </form>
+      {/* ── Building: the deck tiles on the left are the editing surface; the big
+          preview on the right just mirrors the selected tile (read-only). ────── */}
+      {recipe && (
+        <div>
+          {/* Slim action bar — Start over (back to the composer) + handoff. */}
+          <div class="mb-4 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={startOver}
+              class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[14px] font-semibold text-ink-soft transition-colors hover:border-gold"
+            >
+              ← Start over
+            </button>
 
-        {error && (
-          <p class="mt-3 text-[14px] font-semibold text-maroon" role="alert">
-            {error}
-          </p>
-        )}
-      </section>
-
-      {/* ── Results: preview + stepper + deck editor ────────────────────── */}
-      {recipe && slides.length > 0 && (
-        <div class="mt-6 grid grid-cols-1 gap-6 desktop:grid-cols-[1fr_340px]">
-          {/* Preview + handoff */}
-          <section aria-label="Layout preview">
-            <div class="relative aspect-video w-full overflow-hidden rounded-lg border border-rule-strong bg-black shadow-sm">
-              <StageFrame>
-                <Stage slide={slides[current]} />
-              </StageFrame>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={copyLink}
+                class="whitespace-nowrap rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[14px] font-semibold text-ink-soft transition-colors hover:border-gold"
+              >
+                {copied ? "Link copied ✓" : "🔗 Copy link"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresenting(true)}
+                class="whitespace-nowrap rounded-md border border-rule-strong bg-maroon px-4 py-1.5 text-[14px] font-semibold text-paper shadow-sm transition-colors hover:border-gold"
+              >
+                ▶ Present
+              </button>
             </div>
+          </div>
 
-            {/* Stepper */}
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => step(-1)}
-                  disabled={current <= 0}
-                  class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[15px] font-semibold text-ink-soft transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Previous slide"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={() => step(1)}
-                  disabled={current >= last}
-                  class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[15px] font-semibold text-ink-soft transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Next slide"
-                >
-                  →
-                </button>
-                <span class="ml-1 text-[14px] tabular-nums text-ink-muted">
-                  {current + 1} / {slides.length}
-                </span>
+          <div class="grid grid-cols-1 gap-6 desktop:grid-cols-[minmax(360px,440px)_minmax(0,1fr)]">
+            {/* LEFT: the deck — tiles that drive order, editing, and the preview. */}
+            <aside
+              class="self-start rounded-lg border border-rule bg-paper/70 p-4"
+              aria-label="Deck"
+            >
+              <DeckEditor
+                recipe={recipe}
+                byId={byId}
+                selected={current}
+                onChange={setRecipe}
+                onSelect={setSlideIndex}
+                onAddCard={addCard}
+              />
+            </aside>
+
+            {/* RIGHT: read-only preview of the selected tile + stepper. Sticky, so
+                it stays in view while you scroll a long deck on the left. */}
+            <section
+              class="self-start desktop:sticky desktop:top-6"
+              aria-label="Layout preview"
+            >
+              <div class="relative aspect-video w-full overflow-hidden rounded-lg border border-rule-strong bg-black shadow-sm">
+                {slides.length > 0 ? (
+                  <StageFrame>
+                    <Stage slide={slides[current]} />
+                  </StageFrame>
+                ) : (
+                  <div class="absolute inset-0 flex items-center justify-center px-6 text-center text-[14px] text-paper/70">
+                    This deck is empty — add a slide from the deck on the left.
+                  </div>
+                )}
               </div>
 
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={copyLink}
-                  class="whitespace-nowrap rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[14px] font-semibold text-ink-soft transition-colors hover:border-gold"
-                >
-                  {copied ? "Link copied ✓" : "🔗 Copy link"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPresenting(true)}
-                  class="whitespace-nowrap rounded-md border border-rule-strong bg-maroon px-4 py-1.5 text-[14px] font-semibold text-paper shadow-sm transition-colors hover:border-gold"
-                >
-                  ▶ Present
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* The deck — one list that drives order, editing, and the preview. */}
-          <aside
-            class="self-start rounded-lg border border-rule bg-paper/70 p-4"
-            aria-label="Deck"
-          >
-            <DeckEditor
-              recipe={recipe}
-              byId={byId}
-              selected={current}
-              onChange={setRecipe}
-              onSelect={setSlideIndex}
-              onAddCard={addCard}
-            />
-          </aside>
+              {slides.length > 0 && (
+                <div class="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => step(-1)}
+                    disabled={current <= 0}
+                    class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[15px] font-semibold text-ink-soft transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Previous slide"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => step(1)}
+                    disabled={current >= last}
+                    class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[15px] font-semibold text-ink-soft transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Next slide"
+                  >
+                    →
+                  </button>
+                  <span class="ml-1 text-[14px] tabular-nums text-ink-muted">
+                    {current + 1} / {slides.length}
+                  </span>
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       )}
 

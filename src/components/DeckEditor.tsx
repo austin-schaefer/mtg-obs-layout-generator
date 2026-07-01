@@ -17,7 +17,7 @@
  * — a brand-new Card, always inserted right after the selected slide.
  */
 
-import { Fragment } from "preact";
+import { Fragment, type ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import {
   cardKey,
@@ -229,61 +229,63 @@ export default function DeckEditor({
                   recipe={recipe}
                   byId={byId}
                   onChange={onChange}
+                  actions={
+                    /* Reorder / duplicate / remove — placed in each tile's header
+                       row so the tile body below can run the full width. */
+                    <span class="flex shrink-0 items-center gap-1">
+                      <span class="flex flex-col overflow-hidden rounded border border-rule leading-none">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChange(moveSlide(recipe, pos, pos - 1));
+                            onSelect(pos - 1);
+                          }}
+                          disabled={pos === 0}
+                          aria-label="Move up"
+                          class="px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChange(moveSlide(recipe, pos, pos + 1));
+                            onSelect(pos + 1);
+                          }}
+                          disabled={pos === slides.length - 1}
+                          aria-label="Move down"
+                          class="border-t border-rule px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
+                        >
+                          ▼
+                        </button>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(duplicateSlide(recipe, pos));
+                          onSelect(pos + 1);
+                        }}
+                        aria-label="Duplicate slide"
+                        title="Duplicate"
+                        class="rounded border border-rule px-1.5 text-[12px] leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
+                      >
+                        ⧉
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(removeSlide(recipe, pos));
+                          onSelect(Math.max(0, pos - 1));
+                        }}
+                        aria-label="Remove slide"
+                        title="Remove"
+                        class="rounded border border-rule px-1.5 text-[13px] font-semibold leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  }
                 />
-
-                {/* Row actions — reorder / duplicate / remove. */}
-                <span class="flex shrink-0 items-center gap-1">
-                  <span class="flex flex-col overflow-hidden rounded border border-rule leading-none">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onChange(moveSlide(recipe, pos, pos - 1));
-                        onSelect(pos - 1);
-                      }}
-                      disabled={pos === 0}
-                      aria-label="Move up"
-                      class="px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onChange(moveSlide(recipe, pos, pos + 1));
-                        onSelect(pos + 1);
-                      }}
-                      disabled={pos === slides.length - 1}
-                      aria-label="Move down"
-                      class="border-t border-rule px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
-                    >
-                      ▼
-                    </button>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(duplicateSlide(recipe, pos));
-                      onSelect(pos + 1);
-                    }}
-                    aria-label="Duplicate slide"
-                    title="Duplicate"
-                    class="rounded border border-rule px-1.5 text-[12px] leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
-                  >
-                    ⧉
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(removeSlide(recipe, pos));
-                      onSelect(Math.max(0, pos - 1));
-                    }}
-                    aria-label="Remove slide"
-                    title="Remove"
-                    class="rounded border border-rule px-1.5 text-[13px] font-semibold leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
-                  >
-                    ✕
-                  </button>
-                </span>
               </li>
               {pos === slides.length - 1 && lineAt(slides.length) && <InsertLine />}
             </Fragment>
@@ -451,19 +453,22 @@ export default function DeckEditor({
   );
 }
 
-/** The type-specific middle of a deck row. */
+/** The type-specific body of a deck tile, including the row-action buttons in its
+ *  header so keynote/text/grid stay one-line and a card tile's body runs full width. */
 function SlideBody({
   slide,
   pos,
   recipe,
   byId,
   onChange,
+  actions,
 }: {
   slide: LayoutRecipe["slides"][number];
   pos: number;
   recipe: LayoutRecipe;
   byId: Map<string, Card>;
   onChange: (next: LayoutRecipe) => void;
+  actions: ComponentChildren;
 }) {
   const Badge = ({ children }: { children: string }) => (
     <span class="shrink-0 rounded bg-marble px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
@@ -475,6 +480,8 @@ function SlideBody({
     return (
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <Badge>Keynote</Badge>
+        <span class="flex-1" />
+        {actions}
       </div>
     );
   }
@@ -493,6 +500,7 @@ function SlideBody({
           class="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 font-serif text-[14px] text-ink hover:border-rule focus:border-gold focus:bg-paper focus:outline-none"
           aria-label="Slide text"
         />
+        {actions}
       </div>
     );
   }
@@ -513,14 +521,17 @@ function SlideBody({
           class="w-20 rounded border border-rule-strong bg-paper px-2 py-0.5 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
           aria-label="Grid arrangement, columns by rows"
         />
+        <span class="flex-1" />
+        {actions}
       </div>
     );
   }
 
   const card = byId.get(cardKey(slide)) ?? placeholderCard(slide);
   const face = slide.face;
-  // Taller thumbnail on the left, sized to the control stack (name + face +
-  // caption); the controls stack to its right and fill the column width.
+  // Taller thumbnail on the left; a header row (name + actions) with the face
+  // control and optional caption stacked below, each filling the full tile width
+  // (the actions live in the header, so nothing reserves a column beside them).
   return (
     <div class="flex min-w-0 flex-1 items-start gap-2.5">
       <img
@@ -528,14 +539,17 @@ function SlideBody({
         alt=""
         loading="lazy"
         draggable={false}
-        class="h-20 w-auto shrink-0 rounded-sm border border-rule"
+        class="h-24 w-auto shrink-0 rounded-sm border border-rule"
       />
-      <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span class="min-w-0 truncate text-[14px] leading-tight text-ink">
-          {card.name}
-        </span>
+      <div class="flex min-w-0 flex-1 flex-col gap-2">
+        <div class="flex items-start gap-2">
+          <span class="min-w-0 flex-1 truncate pt-0.5 text-[14px] leading-tight text-ink">
+            {card.name}
+          </span>
+          {actions}
+        </div>
 
-        {/* Face — a joined segmented control that fills the column width. */}
+        {/* Face — a joined segmented control that fills the tile width. */}
         <div
           class="flex w-full overflow-hidden rounded border border-rule"
           role="group"
