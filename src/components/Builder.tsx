@@ -52,7 +52,6 @@ interface ModeDef {
   label: string;
   /** Placeholder for the input box; absent ⇒ no input (custom). */
   placeholder?: string;
-  hint: string;
   comingSoon?: boolean;
 }
 
@@ -61,18 +60,20 @@ const MODES: ModeDef[] = [
     id: "scry",
     label: "Scryfall search",
     placeholder: "e.g. set:neo type:legendary",
-    hint: "Resolve a Scryfall search query into a deck of cards.",
   },
   {
     id: "boost",
     label: "Booster pack",
     placeholder: "e.g. ONS or TSP",
-    hint: "Roll a random booster pack from a set code.",
+  },
+  {
+    id: "scratch",
+    label: "Start from scratch",
+    placeholder: "Optional title, e.g. Time Spiral retrospective",
   },
   {
     id: "custom",
     label: "Custom images",
-    hint: "Bring your own paired card + art images.",
     comingSoon: true,
   },
 ];
@@ -95,6 +96,7 @@ export default function Builder({
   const [inputs, setInputs] = useState<Record<Mode, string>>({
     scry: DEFAULT_SCRY_QUERY,
     boost: "",
+    scratch: "",
     custom: "",
   });
   const [recipe, setRecipe] = useState<LayoutRecipe | null>(initialRecipe);
@@ -133,6 +135,17 @@ export default function Builder({
 
   const generate = useCallback(async () => {
     setError(null);
+    // Start from scratch: no resolver, no cards. Seed just the branded keynote
+    // and one title slide — the host builds everything else in the deck editor.
+    if (mode === "scratch") {
+      setCatalog([]);
+      setRecipe({
+        v: SCHEMA_VERSION,
+        slides: [{ kind: "keynote" }, { kind: "title", text: inputs.scratch.trim() }],
+      });
+      setSlideIndex(0);
+      return;
+    }
     setPending(true);
     try {
       const { cards: resolved, title, grid } = await resolveDeck(mode, inputs[mode]);
@@ -251,8 +264,6 @@ export default function Builder({
             );
           })}
         </div>
-
-        <p class="mt-3 text-[14px] text-ink-soft">{activeMode.hint}</p>
 
         {/* A real <form> so the browser remembers past queries: a named field
             submitted on Enter/Generate is what populates its autofill history.

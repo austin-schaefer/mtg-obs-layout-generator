@@ -41,6 +41,17 @@ const fullStage: Record<string, string> = {
 };
 
 /**
+ * Only ever wrap at spaces. The browser also breaks after a hyphen and around en/em
+ * dashes, which orphans `re-` (from `re-gathered.com`) or a lone dash onto its own
+ * line. Swap plain hyphens for a non-breaking hyphen (U+2011 — identical glyph, not
+ * a break point) and fence each en/em dash with word joiners (U+2060, zero-width) so
+ * it can't break either. The auto-fit then shrinks the whole token to fit and wraps
+ * only at real spaces. Applied to every piece of on-stage text (titles + captions).
+ */
+const keepBreaksAtSpaces = (s: string) =>
+  s.replace(/-/g, "‑").replace(/([–—])/g, "⁠$1⁠");
+
+/**
  * An image centered in its region. Two fit modes mirror the pipeline
  * (`calculate_resize_geometry`):
  *  - `"native"` — full cards, already the right size: shown at native px,
@@ -110,6 +121,65 @@ const TEXT_REGION: Box = {
 };
 
 /**
+ * Card caption — the open gutter *between the two host-cam boxes*, below the art.
+ * Derived from `HOST_BOXES` so it tracks the frame: it spans the gap between the
+ * cams (inset a little off each cam edge) and runs from just below the art crop
+ * down to the cams' baseline. This is the one rectangle on a card slide that stays
+ * clear in every face mode (card / art / both), so a caption never lands on the
+ * card, the art, or a webcam.
+ */
+const CAPTION_INSET = 24;
+const CAP_LEFT = HOST_BOXES[0].x + HOST_BOXES[0].w;
+const CAP_RIGHT = HOST_BOXES[1].x;
+const CARD_CAPTION_REGION: Box = {
+  x: CAP_LEFT + CAPTION_INSET,
+  y: 1010,
+  w: CAP_RIGHT - CAP_LEFT - 2 * CAPTION_INSET,
+  h: HOST_BOXES[0].y + HOST_BOXES[0].h - 1010,
+};
+
+/**
+ * A card caption echoes the show's on-stage text treatment (the same orchid the
+ * title slide uses), so both read as one voice. Set in the brand body face
+ * (Montserrat) with a dark halo so light orchid pops against the busy purple/green
+ * marble the caption sits on. Auto-fit so short captions stand large and long ones
+ * shrink to wrap without spilling onto a cam. Empty text renders nothing.
+ */
+function CardCaption({ text }: { text: string }) {
+  const caption = keepBreaksAtSpaces(text.trim());
+  const { ref, size } = useFitFontSize(caption, CARD_CAPTION_REGION, 132, 40);
+  if (!caption) return null;
+  return (
+    <div
+      style={{
+        ...boxStyle(CARD_CAPTION_REGION),
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <p
+        ref={ref}
+        style={{
+          margin: "0",
+          maxWidth: "100%",
+          textAlign: "center",
+          fontFamily: 'var(--font-brand, "Montserrat", system-ui, sans-serif)',
+          fontWeight: "700",
+          fontSize: `${size}px`,
+          lineHeight: "1.1",
+          color: "var(--color-cs-orchid, #d19ed5)",
+          textShadow:
+            "0 2px 14px rgba(0,0,0,0.85), 0 0 30px rgba(0,0,0,0.7)",
+        }}
+      >
+        {caption}
+      </p>
+    </div>
+  );
+}
+
+/**
  * Keynote — the branded show title card: the fully-framed Clock Spinning
  * background (wordmark + host-frame chrome), nothing overlaid. This is the
  * "name of the podcast" slide (issue #25).
@@ -129,7 +199,7 @@ function KeynoteSlide() {
  * clean host-frame background.
  */
 function TitleSlide({ title }: { title: string }) {
-  const text = title.trim();
+  const text = keepBreaksAtSpaces(title.trim());
   const { ref, size } = useFitFontSize(text, TEXT_REGION, 200, 48);
   return (
     <>
@@ -180,7 +250,7 @@ export default function Stage({ slide }: { slide: Slide }) {
     return <GridOverview cards={slide.cards} arrangement={slide.arrangement} />;
   }
 
-  const { card, showCard, showArt } = slide;
+  const { card, showCard, showArt, text } = slide;
   return (
     <>
       <img src={marble.src} alt="" style={fullStage} />
@@ -208,6 +278,8 @@ export default function Stage({ slide }: { slide: Slide }) {
         <div key={i} style={{ ...boxStyle(box), background: "#ffffff" }} />
       ))}
       <img src={frame.src} alt="" style={fullStage} />
+      {/* Caption sits on top of the frame — a broadcast lower-third between cams. */}
+      {text && <CardCaption text={text} />}
     </>
   );
 }

@@ -7,7 +7,8 @@
  * One row per slide, addressed by deck position:
  *   - keynote — the branded show title card (no text); a static label.
  *   - title   — a text slide: an inline, edit-in-place text field.
- *   - card    — thumbnail + name + a Both / Card / Art face control.
+ *   - card    — thumbnail + name + a Both / Card / Art face control, plus an
+ *               optional caption (the `+ Text` toggle opens an inline field).
  *   - grid    — a `WxH` field; auto-montages every card slide in the deck.
  *
  * Each row can be reordered (drag with an insertion-line drop indicator, or the
@@ -25,6 +26,7 @@ import {
   moveSlide,
   placeholderCard,
   removeSlide,
+  setCardText,
   setGridArrangement,
   setSlideFace,
   setTitleText,
@@ -517,8 +519,8 @@ function SlideBody({
 
   const card = byId.get(cardKey(slide)) ?? placeholderCard(slide);
   const face = slide.face;
-  // Full-height card thumbnail on the left; the name (aligned with the row's
-  // controls) and the face control stack to its right.
+  // Taller thumbnail on the left, sized to the control stack (name + face +
+  // caption); the controls stack to its right and fill the column width.
   return (
     <div class="flex min-w-0 flex-1 items-start gap-2.5">
       <img
@@ -526,16 +528,16 @@ function SlideBody({
         alt=""
         loading="lazy"
         draggable={false}
-        class="h-14 w-auto shrink-0 rounded-sm border border-rule"
+        class="h-20 w-auto shrink-0 rounded-sm border border-rule"
       />
       <div class="flex min-w-0 flex-1 flex-col gap-1.5">
         <span class="min-w-0 truncate text-[14px] leading-tight text-ink">
           {card.name}
         </span>
 
-        {/* Face — a joined segmented control, tucked beside the card. */}
+        {/* Face — a joined segmented control that fills the column width. */}
         <div
-          class="flex overflow-hidden rounded border border-rule"
+          class="flex w-full overflow-hidden rounded border border-rule"
           role="group"
           aria-label="Card face"
         >
@@ -559,6 +561,44 @@ function SlideBody({
             );
           })}
         </div>
+
+        {/* Optional caption — a broadcast lower-third between the host cams. The
+            field spans the row to line up with the face control above it; the
+            remove ✕ tucks inside on the right. `+ Caption` opens an empty field. */}
+        {typeof slide.text === "string" ? (
+          <div class="relative">
+            <input
+              type="text"
+              value={slide.text}
+              placeholder="Caption text"
+              // Focus the field the moment it opens so a host can type straight away.
+              ref={(el) => el && slide.text === "" && el.focus()}
+              onInput={(e) =>
+                onChange(setCardText(recipe, pos, (e.target as HTMLInputElement).value))
+              }
+              class="w-full rounded border border-rule bg-paper py-0.5 pl-2 pr-7 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
+              aria-label="Card caption"
+            />
+            <button
+              type="button"
+              onClick={() => onChange(setCardText(recipe, pos, undefined))}
+              aria-label="Remove caption"
+              title="Remove caption"
+              class="absolute inset-y-0 right-0 flex items-center px-2 text-[12px] text-ink-muted transition-colors hover:text-maroon"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onChange(setCardText(recipe, pos, ""))}
+            title="Add a caption below the card, between the host cams"
+            class="self-start rounded border border-rule px-2 py-0.5 text-[12px] font-semibold text-ink-soft transition-colors hover:border-gold hover:text-maroon"
+          >
+            + Caption
+          </button>
+        )}
       </div>
     </div>
   );
