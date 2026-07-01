@@ -382,9 +382,6 @@ export default function Builder() {
             aria-label="Edit controls"
           >
             <h2 class="font-serif text-[16px] font-semibold text-ink">Edit</h2>
-            <p class="mt-1 text-[13px] text-ink-muted">
-              Changes preview live and travel in the permalink.
-            </p>
             <div class="mt-4">
               <LayoutEditor
                 recipe={recipe}

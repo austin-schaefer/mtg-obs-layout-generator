@@ -33,6 +33,7 @@ components/
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
                       L copy permalink), counter. Esc steps back out (grid →
                       fullscreen → onExit); onExit set only for the builder overlay.
+                      In fullscreen all overlay chrome is hidden — just the stage.
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
                       decodes the recipe and re-hydrates its card identities into
                       real artwork via Scryfall (loading / error states)

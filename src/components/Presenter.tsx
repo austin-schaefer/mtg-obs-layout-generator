@@ -45,6 +45,16 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
   const [gridOpen, setGridOpen] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Fullscreen is the broadcast/screen-share surface — hide every overlay so
+  // only the clean stage shows. Chrome returns the moment you leave fullscreen.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    onChange();
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   const last = slides.length - 1;
   const step = useCallback(
@@ -129,6 +139,9 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
         )}
       </StageFrame>
 
+      {/* Overlay chrome — hidden in fullscreen so only the clean stage shows. */}
+      {!isFullscreen && (
+        <>
       {/* Position counter — bottom-right, subtle, broadcast-safe. */}
       <div
         style={{
@@ -206,6 +219,8 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
         >
           ⤺ Exit
         </button>
+      )}
+        </>
       )}
     </div>
   );
