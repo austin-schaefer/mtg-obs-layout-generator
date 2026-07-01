@@ -60,23 +60,28 @@ Two rectangles cut to transparency so an underlying OBS source shows through:
   (`-gravity center`) onto the title background.
 - Grid arrangement format `WxH`, `0` = auto (e.g. `8x0`, `9x0`, `4x4`).
 
-### Title keynote
+### Keynote & text slides
 
-The **title slide** is a Clock Spinning broadcast title card, not a generic
-centered plate (issue #25). It composites straight onto `title_background_w_frame.png`
-— which already carries the wordmark and the host-frame chrome — so a title reads
-as the *same* surface as the card slides. The wordmark is the show brand; the
-episode title is a subordinate line below it.
+Two broadcast title cards share the framed base `title_background_w_frame.png` —
+which already carries the Clock Spinning wordmark and the host-frame chrome — so
+they read as the *same* surface as the card slides, not a generic centered plate
+(issue #25). No floating plate, no rounded rects; the framing is the broadcast
+chrome, not slideware.
 
-- **Title band** (episode title) — the clear gap between the wordmark (above) and
-  the host-cam boxes (below), left of the hourglass: **(810, 660, 1690, 190)** on
-  the 2560×1440 canvas. Auto-fit the title into this box (largest size that wraps
-  without overflowing — see `useFitFontSize` in `lib/stage.ts`); short titles stand
-  large, long ones shrink to two lines. Set it in **Zen Tokyo Zoo** (`--font-display`),
-  orchid (`--color-cs-orchid`), with a soft glow for legibility over the indigo.
-- **No plate, no rounded rects.** The framing is the broadcast chrome, not slideware.
+- **Keynote** — the branded show title card: the framed background, wordmark only,
+  no overlaid text. The "name of the podcast" slide.
+- **Text** — arbitrary text on that same surface. The text sits in the open band
+  **centered on the wordmark's mid-point (x≈1752)**, in the gap between the wordmark
+  (above) and the host-cam boxes (below), clear of the hourglass on the left:
+  **(1052, 660, 1400, 190)** on the 2560×1440 canvas. Auto-fit into the box (largest
+  size that wraps without overflowing — see `useFitFontSize` in `lib/stage.ts`):
+  short lines stand large, long ones shrink to two lines. Set it in the brand body
+  face **Montserrat** (`--font-brand`, 600) — *not* Zen Tokyo Zoo, which is reserved
+  for the baked-in wordmark — in orchid (`--color-cs-orchid`) with a soft glow for
+  legibility over the indigo.
 - The **grid overview** stays on the frameless `title_background.png` (the montage
-  covers ~97% of the canvas), so title + grid read as one coherent purple family.
+  covers ~97% of the canvas), so the title cards + grid read as one coherent
+  purple family.
 
 ### Hero image (optional)
 

@@ -17,15 +17,16 @@ resolved card *identities* but never image URLs:
 | Field | Meaning |
 |---|---|
 | `v` | schema version (currently `2`) |
-| `slides` | ordered list of typed slides (title / card / grid) |
+| `slides` | ordered list of typed slides (keynote / title / card / grid) |
 
 Each slide encodes by type:
 
 | Slide | Compact form | Notes |
 |---|---|---|
-| **title** | `[0, text]` | editable text; any number, anywhere |
+| **title** | `[0, text]` | a text slide: arbitrary text; any number, anywhere |
 | **card** | `[1, setIdx, collector]` or `[1, setIdx, collector, face]` | `setIdx` into the `sets[]` dictionary; `face` `0` card / `1` art / `2` both — omitted when both (the default) |
 | **grid** | `[2, arrangement]` | `WxH`, `0` = auto; montages every card slide in the deck |
+| **keynote** | `[3]` | the branded Clock Spinning title card (wordmark); no payload |
 
 Image URLs are reconstructed at render time (Scryfall / booster / mock), which is
 what keeps the URL deterministic and small.

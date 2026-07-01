@@ -86,62 +86,74 @@ function RegionImage(props: {
 /**
  * The open band on the framed title background — the strip between the baked-in
  * "CLOCK SPINNING" wordmark (above) and the two host-cam boxes (below), clear of
- * the hourglass on the left. The episode title sits here so a title reads as the
- * same broadcast surface as the show: wordmark = the brand, this = the episode.
- * Measured against `title_background_w_frame.png` (2560×1440).
+ * the hourglass on the left. Centered on the wordmark (its measured mid-point,
+ * x≈1752) so a text slide's line sits directly under it — the wordmark = the
+ * brand, this = the section. Measured against `title_background_w_frame.png`
+ * (2560×1440).
  */
-const TITLE_BAND: Box = { x: 810, y: 660, w: 1690, h: 190 };
+const TITLE_BAND: Box = { x: 1052, y: 660, w: 1400, h: 190 };
 
 /**
- * Title keynote. The base is the fully-framed Clock Spinning background — it
- * carries the show wordmark and the host-frame chrome, so the title wears the
- * same broadcast frame the card slides do (issue #25). The episode title is set
- * in the brand display face (Zen Tokyo Zoo) in the show's orchid accent, glowing
- * to stay legible over the busy indigo. An empty title leaves the clean branded
- * standby — no floating plate, no rounded slideware.
+ * Keynote — the branded show title card: the fully-framed Clock Spinning
+ * background (wordmark + host-frame chrome), nothing overlaid. This is the
+ * "name of the podcast" slide (issue #25).
+ */
+function KeynoteSlide() {
+  return <img src={titleFrameBg.src} alt="" style={fullStage} />;
+}
+
+/**
+ * Text slide — arbitrary text on the same broadcast surface as the keynote, so
+ * it reads as part of the show rather than a bare plate. The text sits in the
+ * open band under the wordmark, set in the brand body face (Montserrat) in the
+ * show's orchid accent, glowing to stay legible over the busy indigo. Auto-fit
+ * so short lines stand large and long ones shrink to wrap — never overrunning
+ * the wordmark above or the host boxes below. No floating plate, no rounded
+ * slideware. Empty text falls back to the clean keynote.
  */
 function TitleSlide({ title }: { title: string }) {
   const text = title.trim();
-  // Auto-fit into the open band so short titles stand large and long ones shrink
-  // to wrap cleanly — never overrunning the wordmark above or the host boxes below.
   const { ref, size } = useFitFontSize(text, TITLE_BAND, 104, 40);
+  if (!text) return <KeynoteSlide />;
   return (
     <>
       <img src={titleFrameBg.src} alt="" style={fullStage} />
-      {text && (
-        <div
+      <div
+        style={{
+          ...boxStyle(TITLE_BAND),
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <h1
+          ref={ref}
           style={{
-            ...boxStyle(TITLE_BAND),
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            margin: "0",
+            maxWidth: "100%",
+            textAlign: "center",
+            fontFamily:
+              'var(--font-brand, "Montserrat", system-ui, sans-serif)',
+            fontWeight: "600",
+            fontSize: `${size}px`,
+            lineHeight: "1.08",
+            color: "var(--color-cs-orchid, #d19ed5)",
+            textShadow:
+              "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
           }}
         >
-          <h1
-            ref={ref}
-            style={{
-              margin: "0",
-              maxWidth: "100%",
-              textAlign: "center",
-              fontFamily:
-                'var(--font-display, "Zen Tokyo Zoo", Georgia, serif)',
-              fontWeight: "400",
-              fontSize: `${size}px`,
-              lineHeight: "1.06",
-              color: "var(--color-cs-orchid, #d19ed5)",
-              textShadow:
-                "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
-            }}
-          >
-            {text}
-          </h1>
-        </div>
-      )}
+          {text}
+        </h1>
+      </div>
     </>
   );
 }
 
 export default function Stage({ slide }: { slide: Slide }) {
+  if (slide.kind === "keynote") {
+    return <KeynoteSlide />;
+  }
+
   if (slide.kind === "title") {
     return <TitleSlide title={slide.title} />;
   }

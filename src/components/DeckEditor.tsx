@@ -5,14 +5,15 @@
  * builder previews from the same recipe.
  *
  * One row per slide, addressed by deck position:
- *   - title — an inline, edit-in-place text field.
- *   - card  — thumbnail + name + a Both / Card / Art face control.
- *   - grid  — a `WxH` field; auto-montages every card slide in the deck.
+ *   - keynote — the branded show title card (no text); a static label.
+ *   - title   — a text slide: an inline, edit-in-place text field.
+ *   - card    — thumbnail + name + a Both / Card / Art face control.
+ *   - grid    — a `WxH` field; auto-montages every card slide in the deck.
  *
  * Each row can be reordered (drag with an insertion-line drop indicator, or the
  * ▲▼ fallback), duplicated, removed, and selected (drives the main preview). The
- * footer adds a Title, a Grid, or — via an inline Scryfall search — a brand-new
- * Card, always inserted right after the selected slide.
+ * footer adds a Keynote, a Text slide, a Grid, or — via an inline Scryfall search
+ * — a brand-new Card, always inserted right after the selected slide.
  */
 
 import { Fragment } from "preact";
@@ -253,10 +254,19 @@ export default function DeckEditor({
         <div class="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => addSlide({ kind: "title", text: "New title" })}
+            onClick={() => addSlide({ kind: "keynote" })}
+            title="The branded show title card (podcast name), no text"
             class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
           >
-            + Title
+            + Keynote
+          </button>
+          <button
+            type="button"
+            onClick={() => addSlide({ kind: "title", text: "New text" })}
+            title="Arbitrary text on the broadcast surface"
+            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
+          >
+            + Text
           </button>
           <button
             type="button"
@@ -365,19 +375,30 @@ function SlideBody({
     </span>
   );
 
+  if (slide.kind === "keynote") {
+    return (
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <Badge>Keynote</Badge>
+        <span class="truncate text-[13px] text-ink-muted">
+          Clock Spinning title card
+        </span>
+      </div>
+    );
+  }
+
   if (slide.kind === "title") {
     return (
       <div class="flex min-w-0 flex-1 items-center gap-2">
-        <Badge>Title</Badge>
+        <Badge>Text</Badge>
         <input
           type="text"
           value={slide.text}
-          placeholder="Title text"
+          placeholder="Slide text"
           onInput={(e) =>
             onChange(setTitleText(recipe, pos, (e.target as HTMLInputElement).value))
           }
           class="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 font-serif text-[14px] text-ink hover:border-rule focus:border-gold focus:bg-paper focus:outline-none"
-          aria-label="Title text"
+          aria-label="Slide text"
         />
       </div>
     );
