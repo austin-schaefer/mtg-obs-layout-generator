@@ -30,7 +30,8 @@ changes there, update this table).
 |---|---|
 | `marble-background.png` | Base background for individual card/art slides |
 | `host-frames-card-discussion.png` | Overlay frame applied on top (`+0+0`) |
-| `title_background_w_frame.png` | **Title keynote** base — the Clock Spinning wordmark + host-frame chrome baked in |
+| `title_background_w_frame.png` | **Keynote** base — the Clock Spinning wordmark + host-frame chrome baked in |
+| `title_background_w_hosts.png` | **Text-slide** base — host-frame chrome, *no* wordmark (derived from the keynote art) |
 | `title_background.png` | Frameless variant — base for the grid montage (cards cover it) |
 
 ### Slide regions & sizing
@@ -68,16 +69,17 @@ they read as the *same* surface as the card slides, not a generic centered plate
 (issue #25). No floating plate, no rounded rects; the framing is the broadcast
 chrome, not slideware.
 
-- **Keynote** — the branded show title card: the framed background, wordmark only,
-  no overlaid text. The "name of the podcast" slide.
-- **Text** — arbitrary text on that same surface. The text sits in the open band
-  **centered on the wordmark's mid-point (x≈1752)**, in the gap between the wordmark
-  (above) and the host-cam boxes (below), clear of the hourglass on the left:
-  **(1052, 660, 1400, 190)** on the 2560×1440 canvas. Auto-fit into the box (largest
+- **Keynote** — the branded show title card: `title_background_w_frame.png`,
+  wordmark + host frames, no overlaid text. The "name of the podcast" slide.
+- **Text** — arbitrary text on `title_background_w_hosts.png`: the same host-frame
+  chrome but *no* wordmark, so the text owns the slide instead of competing with
+  the wordmark. The text is centered in the open region where the wordmark would
+  be — above the host-cam boxes, clear of the hourglass on the left:
+  **(820, 150, 1660, 660)** on the 2560×1440 canvas. Auto-fit into the box (largest
   size that wraps without overflowing — see `useFitFontSize` in `lib/stage.ts`):
-  short lines stand large, long ones shrink to two lines. Set it in the brand body
-  face **Montserrat** (`--font-brand`, 600) — *not* Zen Tokyo Zoo, which is reserved
-  for the baked-in wordmark — in orchid (`--color-cs-orchid`) with a soft glow for
+  short lines stand large, long ones shrink and wrap. Set it in the brand body face
+  **Montserrat** (`--font-brand`, 600) — *not* Zen Tokyo Zoo, which is reserved for
+  the baked-in wordmark — in orchid (`--color-cs-orchid`) with a soft glow for
   legibility over the indigo.
 - The **grid overview** stays on the frameless `title_background.png` (the montage
   covers ~97% of the canvas), so the title cards + grid read as one coherent

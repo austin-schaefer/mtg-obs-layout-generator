@@ -30,6 +30,7 @@ import GridOverview from "./GridOverview.tsx";
 import marble from "../../../resources/marble-background.png";
 import frame from "../../../resources/host-frames-card-discussion.png";
 import titleFrameBg from "../../../resources/title_background_w_frame.png";
+import titleHostsBg from "../../../resources/title_background_w_hosts.png";
 
 const fullStage: Record<string, string> = {
   position: "absolute",
@@ -84,14 +85,12 @@ function RegionImage(props: {
 }
 
 /**
- * The open band on the framed title background — the strip between the baked-in
- * "CLOCK SPINNING" wordmark (above) and the two host-cam boxes (below), clear of
- * the hourglass on the left. Centered on the wordmark (its measured mid-point,
- * x≈1752) so a text slide's line sits directly under it — the wordmark = the
- * brand, this = the section. Measured against `title_background_w_frame.png`
- * (2560×1440).
+ * The open region on the host-frame title background — the clear area where the
+ * wordmark would be, above the two host-cam boxes and right of the hourglass on
+ * the left. The text slide centers its text here. Measured against
+ * `title_background_w_hosts.png` (2560×1440; host boxes start ~y858).
  */
-const TITLE_BAND: Box = { x: 1052, y: 660, w: 1400, h: 190 };
+const TEXT_REGION: Box = { x: 820, y: 150, w: 1660, h: 660 };
 
 /**
  * Keynote — the branded show title card: the fully-framed Clock Spinning
@@ -103,48 +102,50 @@ function KeynoteSlide() {
 }
 
 /**
- * Text slide — arbitrary text on the same broadcast surface as the keynote, so
- * it reads as part of the show rather than a bare plate. The text sits in the
- * open band under the wordmark, set in the brand body face (Montserrat) in the
- * show's orchid accent, glowing to stay legible over the busy indigo. Auto-fit
- * so short lines stand large and long ones shrink to wrap — never overrunning
- * the wordmark above or the host boxes below. No floating plate, no rounded
- * slideware. Empty text falls back to the clean keynote.
+ * Text slide — arbitrary text on the broadcast surface, wearing the host-frame
+ * chrome but *not* the wordmark (`title_background_w_hosts.png`, derived from the
+ * keynote art), so it reads as part of the show without competing with the
+ * wordmark. The text is centered in the open region above the host boxes, set in
+ * the brand body face (Montserrat) in the show's orchid accent, glowing to stay
+ * legible over the busy indigo. Auto-fit so short lines stand large and long ones
+ * shrink to wrap — never overrunning the host boxes below. Empty text leaves the
+ * clean host-frame background.
  */
 function TitleSlide({ title }: { title: string }) {
   const text = title.trim();
-  const { ref, size } = useFitFontSize(text, TITLE_BAND, 104, 40);
-  if (!text) return <KeynoteSlide />;
+  const { ref, size } = useFitFontSize(text, TEXT_REGION, 200, 48);
   return (
     <>
-      <img src={titleFrameBg.src} alt="" style={fullStage} />
-      <div
-        style={{
-          ...boxStyle(TITLE_BAND),
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <h1
-          ref={ref}
+      <img src={titleHostsBg.src} alt="" style={fullStage} />
+      {text && (
+        <div
           style={{
-            margin: "0",
-            maxWidth: "100%",
-            textAlign: "center",
-            fontFamily:
-              'var(--font-brand, "Montserrat", system-ui, sans-serif)',
-            fontWeight: "600",
-            fontSize: `${size}px`,
-            lineHeight: "1.08",
-            color: "var(--color-cs-orchid, #d19ed5)",
-            textShadow:
-              "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
+            ...boxStyle(TEXT_REGION),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {text}
-        </h1>
-      </div>
+          <h1
+            ref={ref}
+            style={{
+              margin: "0",
+              maxWidth: "100%",
+              textAlign: "center",
+              fontFamily:
+                'var(--font-brand, "Montserrat", system-ui, sans-serif)',
+              fontWeight: "600",
+              fontSize: `${size}px`,
+              lineHeight: "1.08",
+              color: "var(--color-cs-orchid, #d19ed5)",
+              textShadow:
+                "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
+            }}
+          >
+            {text}
+          </h1>
+        </div>
+      )}
     </>
   );
 }

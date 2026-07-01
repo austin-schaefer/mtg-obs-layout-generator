@@ -14,7 +14,8 @@ Background and frame image assets the compositing pipeline draws on.
 | `marble-background.png` | Base background for individual card / art slides |
 | `host-frames-card-discussion.png` | Overlay frame applied on top of a slide (`+0+0`) |
 | `title_background.png` | Title-slide background for the grid montage |
-| `title_background_w_frame.png` | Title-slide background variant with frame |
+| `title_background_w_frame.png` | Keynote background — wordmark + host-frame chrome |
+| `title_background_w_hosts.png` | Text-slide background — host frames, **no** wordmark; derived from `title_background_w_frame.png` by patching the wordmark region from `title_background.png` (same underlying art) |
 
 ## Optional, user-supplied (gitignored)
 

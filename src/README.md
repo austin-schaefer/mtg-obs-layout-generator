@@ -51,8 +51,8 @@ components/
     Stage.tsx         Renders one slide (keynote / text / card+art / grid) as
                       canvas layers. Keynote = the framed Clock Spinning brand
                       background (wordmark + host chrome), no text; text = arbitrary
-                      text on that same surface, auto-fit into the open band under
-                      the wordmark in Montserrat / orchid (#25)
+                      text on the host-frame background (no wordmark), auto-fit and
+                      centered above the host boxes in Montserrat / orchid (#25)
     GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
