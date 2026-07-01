@@ -77,7 +77,19 @@ const MODES: ModeDef[] = [
   },
 ];
 
-export default function Builder() {
+interface BuilderProps {
+  /** Seed the builder with an existing deck (e.g. handed off from the presenter
+   *  when a host hits Esc on a shared `/present?r=…` link — opens it for editing
+   *  instead of dropping to an empty builder). */
+  initialRecipe?: LayoutRecipe | null;
+  /** Resolved cards for `initialRecipe`, so its artwork renders without a refetch. */
+  initialCatalog?: Card[];
+}
+
+export default function Builder({
+  initialRecipe = null,
+  initialCatalog = [],
+}: BuilderProps = {}) {
   const [mode, setMode] = useState<Mode>("scry");
   // Keep a separate input per mode so switching modes doesn't clobber a query.
   const [inputs, setInputs] = useState<Record<Mode, string>>({
@@ -85,11 +97,11 @@ export default function Builder() {
     boost: "",
     custom: "",
   });
-  const [recipe, setRecipe] = useState<LayoutRecipe | null>(null);
+  const [recipe, setRecipe] = useState<LayoutRecipe | null>(initialRecipe);
   // Every resolved card whose identity the deck might reference — the Generate
   // results plus any cards added later via search. Keyed into render by identity,
   // so the preview shows real artwork rather than re-resolving from a catalog.
-  const [catalog, setCatalog] = useState<Card[]>([]);
+  const [catalog, setCatalog] = useState<Card[]>(initialCatalog);
   const [slideIndex, setSlideIndex] = useState(0);
   const [presenting, setPresenting] = useState(false);
   const [pending, setPending] = useState(false);
