@@ -22,13 +22,17 @@ components/
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
                       generate, results strip, stage + grid preview, layout
-                      editor (#15), presenter handoff.
+                      editor (#15), and an in-app "Present" overlay (mounts
+                      <Presenter> fullscreen — no navigation, so editing work is
+                      never lost; Esc returns to the builder).
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
-  LayoutEditor.tsx    Hand-edit panel (#15): drag-reorder, exclude, grid WxH, and
-                      per-card face (card / art / both) — writes the recipe live.
+  LayoutEditor.tsx    Hand-edit panel (#15): drag-reorder (insertion-line drop
+                      indicator + ▲▼ fallback), exclude, grid WxH, and per-card
+                      face (card / art / both) — writes the recipe live.
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
-                      Esc close grid / exit fullscreen · L copy permalink), counter
+                      L copy permalink), counter. Esc steps back out (grid →
+                      fullscreen → onExit); onExit set only for the builder overlay.
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
                       decodes the recipe and re-hydrates its card identities into
                       real artwork via Scryfall (loading / error states)

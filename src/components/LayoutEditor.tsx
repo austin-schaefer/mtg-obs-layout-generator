@@ -10,6 +10,7 @@
  * to the original identities so the permalink stays faithful.
  */
 
+import { Fragment } from "preact";
 import { useState } from "preact/hooks";
 import {
   displayOrder,
@@ -44,15 +45,34 @@ export default function LayoutEditor({ recipe, cards, onChange, onJump }: Props)
   const excluded = new Set(recipe.excluded ?? []);
   const kept = order.filter((i) => !excluded.has(i)).length;
 
-  // Drag-to-reorder state, tracked in display positions (indices into `order`).
+  // Drag-to-reorder, tracked in display positions. `dropAt` is the *insertion*
+  // slot (0..length) the dragged row would land in — rendered as a line between
+  // rows, the standard "where it'll go" affordance.
   const [dragFrom, setDragFrom] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
+  const [dropAt, setDropAt] = useState<number | null>(null);
 
-  const drop = (to: number) => {
-    if (dragFrom !== null && dragFrom !== to) onChange(moveCard(recipe, dragFrom, to));
+  const commitDrop = () => {
+    if (dragFrom !== null && dropAt !== null) {
+      // The insertion slot is in pre-removal coordinates; shift when the row
+      // moves down past its own old slot.
+      const to = dragFrom < dropAt ? dropAt - 1 : dropAt;
+      if (to !== dragFrom) onChange(moveCard(recipe, dragFrom, to));
+    }
     setDragFrom(null);
-    setDragOver(null);
+    setDropAt(null);
   };
+
+  // A line is meaningful only when it represents a real move (not the two slots
+  // flanking the dragged row, which are no-ops).
+  const lineAt = (slot: number) =>
+    dragFrom !== null &&
+    dropAt === slot &&
+    dropAt !== dragFrom &&
+    dropAt !== dragFrom + 1;
+
+  const InsertLine = () => (
+    <li aria-hidden="true" class="-my-1 h-[3px] rounded-full bg-gold" />
+  );
 
   return (
     <div class="flex flex-col gap-5">
@@ -80,39 +100,36 @@ export default function LayoutEditor({ recipe, cards, onChange, onJump }: Props)
             {kept} of {order.length} shown
           </span>
         </div>
-        <p class="mt-1 text-[12px] text-ink-muted">
-          Drag to reorder · pick a face · exclude to drop a card.
-        </p>
 
-        <ul class="mt-2 flex flex-col gap-1.5">
+        <ul class="mt-2 flex flex-col gap-2">
           {order.map((cardIndex, pos) => {
             const card = cards[cardIndex];
             const isExcluded = excluded.has(cardIndex);
             const face = recipe.faces?.[cardIndex] ?? FACE_BOTH;
             return (
-              <li
-                key={`${card.set}-${card.collector}-${cardIndex}`}
-                draggable
-                onDragStart={() => setDragFrom(pos)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (dragOver !== pos) setDragOver(pos);
-                }}
-                onDrop={() => drop(pos)}
-                onDragEnd={() => {
-                  setDragFrom(null);
-                  setDragOver(null);
-                }}
-                class={[
-                  "rounded-md border bg-paper p-2 transition-colors",
-                  dragOver === pos && dragFrom !== null
-                    ? "border-gold"
-                    : "border-rule",
-                  isExcluded ? "opacity-55" : "",
-                  dragFrom === pos ? "opacity-40" : "",
-                ].join(" ")}
-              >
-                <div class="flex items-center gap-2">
+              <Fragment key={`${card.set}-${card.collector}-${cardIndex}`}>
+                {lineAt(pos) && <InsertLine />}
+                <li
+                  draggable
+                  onDragStart={() => setDragFrom(pos)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    const after = e.clientY > r.top + r.height / 2;
+                    const slot = after ? pos + 1 : pos;
+                    if (dropAt !== slot) setDropAt(slot);
+                  }}
+                  onDrop={commitDrop}
+                  onDragEnd={() => {
+                    setDragFrom(null);
+                    setDropAt(null);
+                  }}
+                  class={[
+                    "flex items-center gap-2.5 rounded-md border border-rule bg-paper px-2 py-1.5 transition-opacity",
+                    isExcluded ? "opacity-55" : "",
+                    dragFrom === pos ? "opacity-40" : "",
+                  ].join(" ")}
+                >
                   <span
                     class="cursor-grab select-none text-[15px] leading-none text-ink-muted"
                     aria-hidden="true"
@@ -120,87 +137,95 @@ export default function LayoutEditor({ recipe, cards, onChange, onJump }: Props)
                   >
                     ⠿
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => onJump(cardIndex)}
-                    title={`Jump to ${card.name}`}
-                    class="flex min-w-0 flex-1 items-center gap-2 text-left"
-                  >
-                    <img
-                      src={card.cardImage}
-                      alt=""
-                      loading="lazy"
-                      draggable={false}
-                      class="h-9 w-auto shrink-0 rounded-sm border border-rule"
-                    />
-                    <span
-                      class={[
-                        "truncate text-[14px] text-ink",
-                        isExcluded ? "line-through" : "",
-                      ].join(" ")}
-                    >
-                      {card.name}
-                    </span>
-                  </button>
 
-                  {/* Reorder (accessible fallback for drag) */}
-                  <span class="flex shrink-0 flex-col">
-                    <button
-                      type="button"
-                      onClick={() => onChange(moveCard(recipe, pos, pos - 1))}
-                      disabled={pos === 0}
-                      aria-label="Move up"
-                      class="px-1 text-[11px] leading-tight text-ink-muted hover:text-maroon disabled:opacity-30"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onChange(moveCard(recipe, pos, pos + 1))}
-                      disabled={pos === order.length - 1}
-                      aria-label="Move down"
-                      class="px-1 text-[11px] leading-tight text-ink-muted hover:text-maroon disabled:opacity-30"
-                    >
-                      ▼
-                    </button>
-                  </span>
+                  <img
+                    src={card.cardImage}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                    class="h-11 w-auto shrink-0 rounded-sm border border-rule"
+                  />
 
-                  <button
-                    type="button"
-                    onClick={() => onChange(toggleExcluded(recipe, cardIndex))}
-                    aria-pressed={isExcluded}
-                    title={isExcluded ? "Include in the show" : "Exclude from the show"}
-                    class="shrink-0 rounded border border-rule px-1.5 py-0.5 text-[13px] font-semibold text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
-                  >
-                    {isExcluded ? "＋" : "✕"}
-                  </button>
-                </div>
-
-                {/* Per-card face */}
-                <div class="mt-1.5 flex gap-1 pl-6" role="group" aria-label="Card face">
-                  {FACES.map((f) => {
-                    const on = face === f.code;
-                    return (
+                  <div class="flex min-w-0 flex-1 flex-col gap-1">
+                    <div class="flex items-center gap-1.5">
                       <button
-                        key={f.code}
                         type="button"
-                        onClick={() => onChange(setFace(recipe, cardIndex, f.code))}
-                        disabled={isExcluded}
-                        aria-pressed={on}
-                        title={f.title}
+                        onClick={() => onJump(cardIndex)}
+                        title={`Jump to ${card.name}`}
                         class={[
-                          "rounded border px-2 py-0.5 text-[12px] font-semibold transition-colors disabled:opacity-40",
-                          on
-                            ? "border-maroon bg-maroon text-paper"
-                            : "border-rule text-ink-soft hover:border-gold",
+                          "min-w-0 flex-1 truncate text-left text-[14px] text-ink transition-colors hover:text-maroon",
+                          isExcluded ? "line-through" : "",
                         ].join(" ")}
                       >
-                        {f.label}
+                        {card.name}
                       </button>
-                    );
-                  })}
-                </div>
-              </li>
+
+                      {/* Reorder stepper — the accessible path drag can't cover. */}
+                      <span class="flex shrink-0 flex-col overflow-hidden rounded border border-rule leading-none">
+                        <button
+                          type="button"
+                          onClick={() => onChange(moveCard(recipe, pos, pos - 1))}
+                          disabled={pos === 0}
+                          aria-label="Move up"
+                          class="px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onChange(moveCard(recipe, pos, pos + 1))}
+                          disabled={pos === order.length - 1}
+                          aria-label="Move down"
+                          class="border-t border-rule px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
+                        >
+                          ▼
+                        </button>
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => onChange(toggleExcluded(recipe, cardIndex))}
+                        aria-pressed={isExcluded}
+                        title={isExcluded ? "Include in the show" : "Exclude from the show"}
+                        class="shrink-0 rounded border border-rule px-1.5 text-[13px] font-semibold leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
+                      >
+                        {isExcluded ? "＋" : "✕"}
+                      </button>
+                    </div>
+
+                    {/* Face — a joined segmented control, one unit under the name. */}
+                    <div
+                      class="flex overflow-hidden rounded border border-rule"
+                      role="group"
+                      aria-label="Card face"
+                    >
+                      {FACES.map((f, fi) => {
+                        const on = face === f.code;
+                        return (
+                          <button
+                            key={f.code}
+                            type="button"
+                            onClick={() => onChange(setFace(recipe, cardIndex, f.code))}
+                            disabled={isExcluded}
+                            aria-pressed={on}
+                            title={f.title}
+                            class={[
+                              "flex-1 px-2 py-0.5 text-[12px] font-semibold transition-colors disabled:opacity-40",
+                              fi > 0 ? "border-l border-rule" : "",
+                              on
+                                ? "bg-maroon text-paper"
+                                : "bg-paper text-ink-soft hover:bg-marble",
+                            ].join(" ")}
+                          >
+                            {f.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </li>
+                {pos === order.length - 1 && lineAt(order.length) && <InsertLine />}
+              </Fragment>
             );
           })}
         </ul>

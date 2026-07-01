@@ -51,7 +51,7 @@ interface Props {
 }
 
 export default function GridOverview({ cards, arrangement }: Props) {
-  const { cols } = gridDims(arrangement, cards.length);
+  const { cols, rows } = gridDims(arrangement, cards.length);
 
   return (
     <>
@@ -64,9 +64,12 @@ export default function GridOverview({ cards, arrangement }: Props) {
           width: `${GRID_MAX.w}px`,
           height: `${GRID_MAX.h}px`,
           display: "grid",
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          // Fixed rows *and* columns of equal fraction: every tile gets a bounded
+          // cell (box height ÷ rows), so the whole montage fits — no overflow/clip
+          // no matter the card count (the bug when rows were left implicit/auto).
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           gap: "24px",
-          alignContent: "center",
           justifyItems: "center",
           alignItems: "center",
         }}

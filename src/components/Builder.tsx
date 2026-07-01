@@ -31,6 +31,7 @@ import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
 import GridOverview from "./stage/GridOverview.tsx";
 import LayoutEditor from "./LayoutEditor.tsx";
+import Presenter from "./Presenter.tsx";
 
 const DEFAULT_GRID = "4x0";
 
@@ -87,6 +88,7 @@ export default function Builder() {
   const [catalog, setCatalog] = useState<Card[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
   const [viewGrid, setViewGrid] = useState(false);
+  const [presenting, setPresenting] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -144,8 +146,6 @@ export default function Builder() {
   const setTitle = useCallback((title: string) => {
     setRecipe((r) => (r ? { ...r, title } : r));
   }, []);
-
-  const permalinkPath = recipe ? `/present?r=${encodeRecipe(recipe)}` : "#";
 
   const copyLink = useCallback(() => {
     if (!recipe) return;
@@ -339,12 +339,13 @@ export default function Builder() {
                 >
                   {copied ? "Link copied ✓" : "🔗 Copy link"}
                 </button>
-                <a
-                  href={permalinkPath}
-                  class="whitespace-nowrap rounded-md border border-rule-strong bg-maroon px-4 py-1.5 text-[14px] font-semibold text-paper no-underline shadow-sm transition-colors hover:border-gold"
+                <button
+                  type="button"
+                  onClick={() => setPresenting(true)}
+                  class="whitespace-nowrap rounded-md border border-rule-strong bg-maroon px-4 py-1.5 text-[14px] font-semibold text-paper shadow-sm transition-colors hover:border-gold"
                 >
-                  Open presenter →
-                </a>
+                  ▶ Present
+                </button>
               </div>
             </div>
 
@@ -393,6 +394,19 @@ export default function Builder() {
               />
             </div>
           </aside>
+        </div>
+      )}
+
+      {/* In-app presenter: a fullscreen overlay over the builder rather than a
+          navigation, so presenting never loses the deck you're editing. Esc (or
+          the overlay's Exit button) returns here with everything intact. */}
+      {presenting && recipe && (
+        <div class="fixed inset-0 z-50">
+          <Presenter
+            recipe={recipe}
+            cards={cards}
+            onExit={() => setPresenting(false)}
+          />
         </div>
       )}
     </div>
