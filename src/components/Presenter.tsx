@@ -30,6 +30,9 @@ interface Props {
   recipe: LayoutRecipe;
   /** Resolved cards indexed by identity (`cardMapFrom`). */
   byId: Map<string, Card>;
+  /** Slide the show opens on (clamped). The builder's "Present" hands off the
+   *  slide the host had selected; the standalone /present page opens at 0. */
+  startIndex?: number;
   /** When set, Esc (with nothing left to close) and the exit button call this
    *  instead of navigating — used by the builder's in-app "Present" overlay. */
   onExit?: () => void;
@@ -38,7 +41,7 @@ interface Props {
 const NEXT_KEYS = new Set(["ArrowRight", "ArrowDown", "PageDown", " ", "Spacebar"]);
 const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp", "Backspace"]);
 
-export default function Presenter({ recipe, byId, onExit }: Props) {
+export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Props) {
   const slides = buildSlides(recipe, byId);
 
   // Preload the whole deck (both faces) so no slide loads mid-presentation.
@@ -50,7 +53,9 @@ export default function Presenter({ recipe, byId, onExit }: Props) {
   );
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() =>
+    Math.min(Math.max(0, startIndex), Math.max(0, slides.length - 1)),
+  );
   const [hintDismissed, setHintDismissed] = useState(false);
   const [copied, setCopied] = useState(false);
   // Fullscreen is the broadcast/screen-share surface — hide every overlay so

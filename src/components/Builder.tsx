@@ -63,7 +63,7 @@ const MODES: ModeDef[] = [
   {
     id: "boost",
     label: "Booster pack",
-    placeholder: "e.g. NEO",
+    placeholder: "e.g. ONS or TSP",
     hint: "Roll a random booster pack from a set code.",
   },
   {
@@ -368,6 +368,7 @@ export default function Builder() {
           <Presenter
             recipe={recipe}
             byId={byId}
+            startIndex={current}
             onExit={() => setPresenting(false)}
           />
         </div>
