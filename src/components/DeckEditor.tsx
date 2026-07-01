@@ -330,7 +330,7 @@ export default function DeckEditor({
           </button>
           <button
             type="button"
-            onClick={() => addSlide({ kind: "grid", arrangement: "4x0" })}
+            onClick={() => addSlide({ kind: "grid", arrangement: "" })}
             class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
           >
             + Grid
@@ -517,44 +517,48 @@ function SlideBody({
 
   const card = byId.get(cardKey(slide)) ?? placeholderCard(slide);
   const face = slide.face;
+  // Full-height card thumbnail on the left; the name (aligned with the row's
+  // controls) and the face control stack to its right.
   return (
-    <div class="flex min-w-0 flex-1 flex-col gap-1">
-      <div class="flex items-center gap-2">
-        <img
-          src={card.cardImage}
-          alt=""
-          loading="lazy"
-          draggable={false}
-          class="h-11 w-auto shrink-0 rounded-sm border border-rule"
-        />
-        <span class="min-w-0 flex-1 truncate text-[14px] text-ink">{card.name}</span>
-      </div>
+    <div class="flex min-w-0 flex-1 items-start gap-2.5">
+      <img
+        src={card.cardImage}
+        alt=""
+        loading="lazy"
+        draggable={false}
+        class="h-14 w-auto shrink-0 rounded-sm border border-rule"
+      />
+      <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span class="min-w-0 truncate text-[14px] leading-tight text-ink">
+          {card.name}
+        </span>
 
-      {/* Face — a joined segmented control. */}
-      <div
-        class="flex overflow-hidden rounded border border-rule"
-        role="group"
-        aria-label="Card face"
-      >
-        {FACES.map((f, fi) => {
-          const on = face === f.code;
-          return (
-            <button
-              key={f.code}
-              type="button"
-              onClick={() => onChange(setSlideFace(recipe, pos, f.code))}
-              aria-pressed={on}
-              title={f.title}
-              class={[
-                "flex-1 px-2 py-0.5 text-[12px] font-semibold transition-colors",
-                fi > 0 ? "border-l border-rule" : "",
-                on ? "bg-maroon text-paper" : "bg-paper text-ink-soft hover:bg-marble",
-              ].join(" ")}
-            >
-              {f.label}
-            </button>
-          );
-        })}
+        {/* Face — a joined segmented control, tucked beside the card. */}
+        <div
+          class="flex overflow-hidden rounded border border-rule"
+          role="group"
+          aria-label="Card face"
+        >
+          {FACES.map((f, fi) => {
+            const on = face === f.code;
+            return (
+              <button
+                key={f.code}
+                type="button"
+                onClick={() => onChange(setSlideFace(recipe, pos, f.code))}
+                aria-pressed={on}
+                title={f.title}
+                class={[
+                  "flex-1 px-2 py-0.5 text-[12px] font-semibold transition-colors",
+                  fi > 0 ? "border-l border-rule" : "",
+                  on ? "bg-maroon text-paper" : "bg-paper text-ink-soft hover:bg-marble",
+                ].join(" ")}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

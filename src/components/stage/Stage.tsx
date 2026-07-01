@@ -85,12 +85,29 @@ function RegionImage(props: {
 }
 
 /**
- * The open region on the host-frame title background — the clear area where the
- * wordmark would be, above the two host-cam boxes and right of the hourglass on
- * the left. The text slide centers its text here. Measured against
- * `title_background_w_hosts.png` (2560×1440; host boxes start ~y858).
+ * The open region on the host-frame title background — the clear area above the
+ * two host-cam boxes where the wordmark would be. The text slide centers its text
+ * here, so the region is centered on the **midpoint of the two host frames**, not
+ * the canvas: the hosts sit right-of-center (the hourglass ornament occupies the
+ * left), so canvas-centered text reads visibly left-heavy over them.
+ *
+ * Construction (derived from `HOST_BOXES`, so it tracks the frame): center the
+ * region on the two host frames' midpoint, and let it overhang each frame by half
+ * the right frame's gutter to the canvas edge. So the text can run a little wider
+ * than the frames (nicer for long lines) while the other half of that gutter stays
+ * as canvas breathing room — long lines never kiss the edge, and the block stays
+ * balanced across the hosts (the hourglass ornament sits clear to the left).
+ * Measured against `title_background_w_hosts.png` (2560×1440; host boxes ~y858).
  */
-const TEXT_REGION: Box = { x: 820, y: 150, w: 1660, h: 660 };
+const HOST_SPAN_LEFT = HOST_BOXES[0].x;
+const HOST_SPAN_RIGHT = HOST_BOXES[1].x + HOST_BOXES[1].w;
+const TEXT_OVERHANG = Math.round((STAGE_WIDTH - HOST_SPAN_RIGHT) / 2);
+const TEXT_REGION: Box = {
+  x: HOST_SPAN_LEFT - TEXT_OVERHANG,
+  y: 150,
+  w: HOST_SPAN_RIGHT - HOST_SPAN_LEFT + 2 * TEXT_OVERHANG,
+  h: 660,
+};
 
 /**
  * Keynote — the branded show title card: the fully-framed Clock Spinning

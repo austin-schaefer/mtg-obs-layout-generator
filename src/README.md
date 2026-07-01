@@ -32,12 +32,16 @@ components/
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
                       A generated deck is bookended by the branded keynote card:
-                      keynote → title → cards → grid → keynote.
+                      keynote → title → cards → grid → keynote. Accepts optional
+                      initialRecipe / initialCatalog props so it can open straight
+                      into an existing deck (the present→edit handoff below).
   DeckEditor.tsx      The one list that is the show (#26): a row per slide
                       (keynote / text / card / grid). Drag-reorder (insertion-line
                       drop indicator + ▲▼ fallback), duplicate, remove, select
                       (drives the preview); edit text in place, pick a card's face
-                      (card / art / both), set a grid's WxH. A sticky bottom bar
+                      (card / art / both — a full-height thumbnail with the name and
+                      face control stacked to its right), set a grid's WxH (blank = a
+                      card-count-aware default, `autoColumns`). A sticky bottom bar
                       adds a Card / Text / Keynote / Grid after the selected slide
                       (pinned so a long deck needs no scroll) — writes recipe live.
                       Adding a card is two-step when it has several printings:
@@ -52,14 +56,18 @@ components/
                       builder overlay. In fullscreen all overlay chrome is hidden.
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
                       decodes the deck and re-hydrates its card identities into
-                      real artwork via Scryfall (loading / error states)
+                      real artwork via Scryfall (loading / error states). Esc hands
+                      the loaded deck to <Builder> for editing in place (cards
+                      already resolved, so no refetch) — a shared link is no longer
+                      a dead end.
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
     Stage.tsx         Renders one slide (keynote / text / card+art / grid) as
                       canvas layers. Keynote = the framed Clock Spinning brand
                       background (wordmark + host chrome), no text; text = arbitrary
                       text on the host-frame background (no wordmark), auto-fit and
-                      centered above the host boxes in Montserrat / orchid (#25)
+                      centered on the two host frames' midpoint (they sit right of
+                      canvas-center) in Montserrat / orchid (#25)
     GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;

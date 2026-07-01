@@ -11,8 +11,9 @@
  * markup matches the server-rendered mock and there's no hydration mismatch.
  */
 
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import Presenter from "./Presenter.tsx";
+import Builder from "./Builder.tsx";
 import { decodeRecipe } from "../lib/permalink.ts";
 import { MOCK_CARDS, MOCK_RECIPE } from "../lib/mock-cards.ts";
 import { resolveRefs } from "../lib/scryfall.ts";
@@ -31,6 +32,10 @@ export default function PresenterApp() {
     cardMapFrom(MOCK_CARDS),
   );
   const [status, setStatus] = useState<Status>("ready");
+  // A shared /present link is otherwise a dead end — no way back to editing. Esc
+  // hands the loaded deck to the builder (its cards already resolved, so no
+  // refetch), turning "watch this layout" into "edit this layout" in place.
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const encoded = new URLSearchParams(window.location.search).get("r");
@@ -64,11 +69,29 @@ export default function PresenterApp() {
     };
   }, []);
 
+  // The resolved cards as a catalog, to hand off to the builder for editing.
+  const catalog = useMemo(() => [...byId.values()], [byId]);
+
+  if (editing) {
+    // The presenter shell is a fixed full-bleed stage; the builder is a tall,
+    // scrolling surface. Give it its own scrollable, marble-backed page container
+    // (matching the homepage `main`), above the shell's "← back" link.
+    return (
+      <div class="fixed inset-0 z-20 overflow-y-auto bg-marble">
+        <main class="mx-auto w-full max-w-6xl px-4 py-10 tablet:px-6 desktop:px-8">
+          <Builder initialRecipe={recipe} initialCatalog={catalog} />
+        </main>
+      </div>
+    );
+  }
+
   if (status !== "ready") {
     return <ResolveScreen status={status} />;
   }
 
-  return <Presenter recipe={recipe} byId={byId} />;
+  return (
+    <Presenter recipe={recipe} byId={byId} onExit={() => setEditing(true)} />
+  );
 }
 
 /** A minimal, broadcast-clean overlay while cards resolve (or if resolution fails). */

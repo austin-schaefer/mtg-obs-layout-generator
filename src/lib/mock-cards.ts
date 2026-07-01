@@ -107,6 +107,6 @@ export const MOCK_RECIPE: LayoutRecipe = {
         face: FACE_BOTH,
       }),
     ),
-    { kind: "grid", arrangement: "4x0" },
+    { kind: "grid", arrangement: "" },
   ],
 };
