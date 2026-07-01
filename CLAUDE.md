@@ -69,6 +69,7 @@ This repository is public. Everything committed is world-readable.
 ## Conventions
 
 - **Small increments, commit often** — keep changes focused and reversible.
+- **Always serve a local preview** (`npx astro dev`) when presenting work to the owner, so they can see it running rather than just read a diff.
 - **Conventional commits** referencing issues where applicable: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`. End messages with the standard `Co-Authored-By` trailer.
 - **Do-not-touch zones:** `resources/` (licensed assets) and `scry` (vendored third-party — bundles [scrycall](https://github.com/0xdanelia/scrycall), MIT).
 - The Python scripts and `legacy_bash_scripts/` define the pipeline's behavior — build the site rather than extending them.
