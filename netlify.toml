@@ -5,3 +5,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Keep the site out of search indexes at the HTTP layer too (authoritative, and
+# covers non-HTML responses). Mirrors the <meta name="robots"> in BaseLayout.
+# Note: no robots.txt Disallow — blocking the crawl would stop bots from seeing
+# this noindex, which can leave bare URLs indexed anyway.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

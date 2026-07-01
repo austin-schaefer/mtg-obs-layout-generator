@@ -16,7 +16,10 @@ pipeline (see the epic, issue #19). Static build, deployed on Netlify.
 
 ```
 layouts/
-  BaseLayout.astro    Document shell: <head>, fonts, global.css, body slot
+  BaseLayout.astro    Document shell: <head>, fonts, global.css, body slot.
+                      Emits <meta name="robots" content="noindex, nofollow"> so
+                      the tool stays out of search (mirrored by an X-Robots-Tag
+                      header in netlify.toml; robots.txt intentionally omitted).
 components/
   SiteHeader.astro    Wordmark + tagline
   SiteFooter.astro    Attribution + source link

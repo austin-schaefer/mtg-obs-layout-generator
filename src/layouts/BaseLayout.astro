@@ -17,6 +17,10 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* Keep the tool out of search engines. Paired with the X-Robots-Tag header
+        in netlify.toml; we deliberately do NOT Disallow in robots.txt, so crawlers
+        can still fetch the page and actually see this noindex. */}
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
