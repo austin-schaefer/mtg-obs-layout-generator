@@ -64,7 +64,6 @@ export default function DeckEditor({
   onAddCard,
 }: Props) {
   const slides = recipe.slides;
-  const cardCount = slides.filter((s) => s.kind === "card").length;
 
   // Drag-to-reorder, tracked in deck positions. `dropAt` is the *insertion* slot
   // (0..length) the dragged row would land in — rendered as a line between rows.
@@ -227,7 +226,6 @@ export default function DeckEditor({
                   pos={pos}
                   recipe={recipe}
                   byId={byId}
-                  cardCount={cardCount}
                   onChange={onChange}
                 />
 
@@ -291,32 +289,11 @@ export default function DeckEditor({
         })}
       </ul>
 
-      {/* Add controls — everything inserts right after the selected slide. */}
-      <div class="flex flex-col gap-2 border-t border-rule pt-3">
+      {/* Add controls — everything inserts right after the selected slide.
+          Pinned to the bottom of the viewport so adding never needs a scroll
+          to the end of a long deck. */}
+      <div class="sticky bottom-0 z-10 -mx-4 -mb-4 flex flex-col gap-2 border-t border-rule bg-paper px-4 pb-4 pt-3">
         <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => addSlide({ kind: "keynote" })}
-            title="The branded show title card (podcast name), no text"
-            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
-          >
-            + Keynote
-          </button>
-          <button
-            type="button"
-            onClick={() => addSlide({ kind: "title", text: "New text" })}
-            title="Arbitrary text on the broadcast surface"
-            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
-          >
-            + Text
-          </button>
-          <button
-            type="button"
-            onClick={() => addSlide({ kind: "grid", arrangement: "4x0" })}
-            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
-          >
-            + Grid
-          </button>
           <button
             type="button"
             onClick={() =>
@@ -334,6 +311,29 @@ export default function DeckEditor({
             ].join(" ")}
           >
             + Card
+          </button>
+          <button
+            type="button"
+            onClick={() => addSlide({ kind: "title", text: "New text" })}
+            title="Arbitrary text on the broadcast surface"
+            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
+          >
+            + Text
+          </button>
+          <button
+            type="button"
+            onClick={() => addSlide({ kind: "keynote" })}
+            title="The branded show title card (podcast name), no text"
+            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
+          >
+            + Keynote
+          </button>
+          <button
+            type="button"
+            onClick={() => addSlide({ kind: "grid", arrangement: "4x0" })}
+            class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
+          >
+            + Grid
           </button>
         </div>
 
@@ -455,14 +455,12 @@ function SlideBody({
   pos,
   recipe,
   byId,
-  cardCount,
   onChange,
 }: {
   slide: LayoutRecipe["slides"][number];
   pos: number;
   recipe: LayoutRecipe;
   byId: Map<string, Card>;
-  cardCount: number;
   onChange: (next: LayoutRecipe) => void;
 }) {
   const Badge = ({ children }: { children: string }) => (
@@ -475,9 +473,6 @@ function SlideBody({
     return (
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <Badge>Keynote</Badge>
-        <span class="truncate text-[13px] text-ink-muted">
-          Clock Spinning title card
-        </span>
       </div>
     );
   }
@@ -516,9 +511,6 @@ function SlideBody({
           class="w-20 rounded border border-rule-strong bg-paper px-2 py-0.5 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
           aria-label="Grid arrangement, columns by rows"
         />
-        <span class="truncate text-[12px] text-ink-muted">
-          montages {cardCount} card{cardCount === 1 ? "" : "s"}
-        </span>
       </div>
     );
   }
