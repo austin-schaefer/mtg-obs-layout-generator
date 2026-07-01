@@ -221,10 +221,21 @@ export default function Builder() {
 
         <p class="mt-3 text-[14px] text-ink-soft">{activeMode.hint}</p>
 
-        <div class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-stretch">
+        {/* A real <form> so the browser remembers past queries: a named field
+            submitted on Enter/Generate is what populates its autofill history.
+            The name is per-mode so scry queries and set codes keep separate lists. */}
+        <form
+          class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-stretch"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!pending && !activeMode.comingSoon) generate();
+          }}
+        >
           {activeMode.placeholder ? (
             <input
               type="text"
+              name={`obs-query-${mode}`}
+              autocomplete="on"
               value={inputs[mode]}
               placeholder={activeMode.placeholder}
               onInput={(e) =>
@@ -233,9 +244,6 @@ export default function Builder() {
                   [mode]: (e.target as HTMLInputElement).value,
                 }))
               }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !pending) generate();
-              }}
               class="w-full flex-1 rounded-md border border-rule-strong bg-paper px-3 py-2 text-[14px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
               aria-label={`${activeMode.label} input`}
             />
@@ -246,14 +254,13 @@ export default function Builder() {
           )}
 
           <button
-            type="button"
-            onClick={generate}
+            type="submit"
             disabled={pending || activeMode.comingSoon}
             class="rounded-md border border-rule-strong bg-paper px-5 py-2 text-[15px] font-semibold text-maroon shadow-sm transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-50 tablet:whitespace-nowrap"
           >
             {pending ? "Generating…" : "Generate"}
           </button>
-        </div>
+        </form>
 
         {error && (
           <p class="mt-3 text-[14px] font-semibold text-maroon" role="alert">

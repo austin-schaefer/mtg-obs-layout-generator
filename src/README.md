@@ -22,7 +22,9 @@ components/
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
                       generate, results strip, stage + grid preview, layout
-                      editor (#15), and an in-app "Present" overlay (mounts
+                      editor (#15), a real <form> query field (per-mode name so
+                      the browser remembers past queries), and an in-app
+                      "Present" overlay (mounts
                       <Presenter> fullscreen — no navigation, so editing work is
                       never lost; Esc returns to the builder).
                       The Scryfall field defaults to a filter prefix (oldest paper
