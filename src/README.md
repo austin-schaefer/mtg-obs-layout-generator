@@ -37,12 +37,13 @@ components/
                       (keynote / text / card / grid). Drag-reorder (insertion-line
                       drop indicator + ▲▼ fallback), duplicate, remove, select
                       (drives the preview); edit text in place, pick a card's face
-                      (card / art / both), set a grid's WxH; add a Keynote, a Text
-                      slide, a Grid, or a searched Card after the selected slide —
-                      writes recipe live. Adding a card is two-step when it has
-                      several printings: search a name, then pick the exact printing
-                      (art thumbnail + set + collector #) that lands on the slide
-                      (#31); a single-printing card adds in one step.
+                      (card / art / both), set a grid's WxH. A sticky bottom bar
+                      adds a Card / Text / Keynote / Grid after the selected slide
+                      (pinned so a long deck needs no scroll) — writes recipe live.
+                      Adding a card is two-step when it has several printings:
+                      search a name, then pick the exact printing (art thumbnail +
+                      set + collector #) that lands on the slide (#31); a
+                      single-printing card adds in one step.
   Presenter.tsx       Show surface: keyboard nav (← → step · F fullscreen ·
                       L copy permalink), counter. Steps the whole deck (grid slides
                       included — no separate grid mode). Opens on `startIndex` (the
