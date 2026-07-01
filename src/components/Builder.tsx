@@ -31,6 +31,14 @@ import Stage from "./stage/Stage.tsx";
 
 const DEFAULT_GRID = "4x0";
 
+/**
+ * Default Scryfall query the search field starts with: the oldest paper printing
+ * of each card, in release order, excluding digital-only, un-set, and Universes
+ * Beyond cards. Hosts append their own criteria after it.
+ */
+const DEFAULT_SCRY_QUERY =
+  "prefer:oldest order:released dir:asc -is:digital -is:funny -is:universesbeyond ";
+
 interface ModeDef {
   id: Mode;
   label: string;
@@ -65,7 +73,7 @@ export default function Builder() {
   const [mode, setMode] = useState<Mode>("scry");
   // Keep a separate input per mode so switching modes doesn't clobber a query.
   const [inputs, setInputs] = useState<Record<Mode, string>>({
-    scry: "",
+    scry: DEFAULT_SCRY_QUERY,
     boost: "",
     custom: "",
   });

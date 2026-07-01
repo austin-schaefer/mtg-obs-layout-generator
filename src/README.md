@@ -22,7 +22,9 @@ components/
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
                       generate, results strip, stage preview, presenter handoff,
-                      edit-controls shell (behavior fills in with the editor, #15)
+                      edit-controls shell (behavior fills in with the editor, #15).
+                      The Scryfall field defaults to a filter prefix (oldest paper
+                      printing, release order, minus digital/un/Universes Beyond).
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
                       Esc close grid / exit fullscreen · L copy permalink), counter
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
