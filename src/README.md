@@ -21,10 +21,12 @@ components/
   SiteHeader.astro    Wordmark + tagline
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
-                      generate, results strip, stage preview, presenter handoff,
-                      edit-controls shell (behavior fills in with the editor, #15).
+                      generate, results strip, stage + grid preview, layout
+                      editor (#15), presenter handoff.
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
+  LayoutEditor.tsx    Hand-edit panel (#15): drag-reorder, exclude, grid WxH, and
+                      per-card face (card / art / both) — writes the recipe live.
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
                       Esc close grid / exit fullscreen · L copy permalink), counter
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
@@ -36,7 +38,9 @@ components/
     GridOverview.tsx  Montage view — all visible cards tiled in a WxH grid
 lib/
   recipe.ts           Shared layout data model: Mode / CardRef / Card / LayoutRecipe;
-                      recipeToSlides() / visibleCards() derive what's shown
+                      recipeToSlides() / visibleCards() / visibleIndices() derive
+                      what's shown; moveCard / toggleExcluded / setFace / setGrid are
+                      the editor's pure recipe→recipe edits
   stage.ts            2560×1440 coordinate system + regions + useStageScale() hook
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)

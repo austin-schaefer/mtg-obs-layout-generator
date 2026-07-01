@@ -132,11 +132,79 @@ export function recipeToSlides(recipe: LayoutRecipe, cards: Card[]): Slide[] {
   return slides;
 }
 
+/**
+ * The `recipe.cards` indices that are shown, in display order: `order` applied,
+ * `excluded` dropped, out-of-range dropped. This is the one place display order
+ * is derived — the grid, the thumbnails, and slide-jumping all key off it, so an
+ * index here is always a real `recipe.cards`/`cards` index (not a display slot).
+ */
+export function visibleIndices(recipe: LayoutRecipe, count: number): number[] {
+  const order = recipe.order ?? Array.from({ length: count }, (_, i) => i);
+  const excluded = new Set(recipe.excluded ?? []);
+  return order.filter((i) => i >= 0 && i < count && !excluded.has(i));
+}
+
 /** The visible cards (post order/exclude), used for the grid overview. */
 export function visibleCards(recipe: LayoutRecipe, cards: Card[]): Card[] {
-  const order = recipe.order ?? cards.map((_, i) => i);
+  return visibleIndices(recipe, cards.length).map((i) => cards[i]);
+}
+
+// ── Editor operations ──────────────────────────────────────────────────────
+// Pure recipe→recipe edits the layout editor (#15) applies. Each returns a new
+// recipe and normalizes: an optional field that lands back on its default
+// (identity order, no exclusions, all-both faces) is dropped so the permalink
+// and the "is this pristine?" checks stay clean.
+
+/** Full display permutation — every `cards` index, `order` applied or identity. */
+export function displayOrder(recipe: LayoutRecipe): number[] {
+  return recipe.order ?? recipe.cards.map((_, i) => i);
+}
+
+function isIdentity(order: number[]): boolean {
+  return order.every((v, i) => v === i);
+}
+
+/** Move the card at display position `from` to display position `to`. */
+export function moveCard(
+  recipe: LayoutRecipe,
+  from: number,
+  to: number,
+): LayoutRecipe {
+  const order = displayOrder(recipe);
+  if (from === to || from < 0 || to < 0 || from >= order.length || to >= order.length) {
+    return recipe;
+  }
+  const next = [...order];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return { ...recipe, order: isIdentity(next) ? undefined : next };
+}
+
+/** Toggle whether the card at `cards` index `index` is dropped from the show. */
+export function toggleExcluded(recipe: LayoutRecipe, index: number): LayoutRecipe {
   const excluded = new Set(recipe.excluded ?? []);
-  return order
-    .filter((i) => i >= 0 && i < cards.length && !excluded.has(i))
-    .map((i) => cards[i]);
+  if (excluded.has(index)) excluded.delete(index);
+  else excluded.add(index);
+  const next = [...excluded].sort((a, b) => a - b);
+  return { ...recipe, excluded: next.length ? next : undefined };
+}
+
+/** Set the face (card / art / both) for the card at `cards` index `index`. */
+export function setFace(
+  recipe: LayoutRecipe,
+  index: number,
+  face: number,
+): LayoutRecipe {
+  const faces = recipe.cards.map((_, i) => recipe.faces?.[i] ?? FACE_BOTH);
+  faces[index] = face;
+  return {
+    ...recipe,
+    faces: faces.every((f) => f === FACE_BOTH) ? undefined : faces,
+  };
+}
+
+/** Set the grid arrangement (`WxH`); blank ⇒ auto. */
+export function setGrid(recipe: LayoutRecipe, grid: string): LayoutRecipe {
+  const trimmed = grid.trim();
+  return { ...recipe, grid: trimmed || undefined };
 }
