@@ -204,6 +204,20 @@ export async function searchDeck(query: string): Promise<ResolvedDeck> {
 }
 
 /**
+ * Search Scryfall for cards to add to a deck (#26), capped to a small preview set
+ * the host picks from. Unlike `searchDeck`, an empty query or no matches yields
+ * `[]` rather than throwing — the add-card picker phrases its own empty state.
+ */
+export async function searchCards(
+  query: string,
+  limit: number = 12,
+): Promise<Card[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  return searchAll(trimmed, limit);
+}
+
+/**
  * Resolve compact card identities to renderable cards via `/cards/collection`
  * (POST, ≤75 per request). The result aligns with `refs` by index; any identity
  * Scryfall can't find — or that lacks usable images — becomes a placeholder so

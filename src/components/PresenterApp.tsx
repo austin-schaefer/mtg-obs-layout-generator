@@ -14,15 +14,22 @@
 import { useEffect, useState } from "preact/hooks";
 import Presenter from "./Presenter.tsx";
 import { decodeRecipe } from "../lib/permalink.ts";
-import { MOCK_RECIPE, resolveCards } from "../lib/mock-cards.ts";
+import { MOCK_CARDS, MOCK_RECIPE } from "../lib/mock-cards.ts";
 import { resolveRefs } from "../lib/scryfall.ts";
-import type { Card, LayoutRecipe } from "../lib/recipe.ts";
+import {
+  cardMapFrom,
+  cardRefs,
+  type Card,
+  type LayoutRecipe,
+} from "../lib/recipe.ts";
 
 type Status = "ready" | "loading" | "error";
 
 export default function PresenterApp() {
   const [recipe, setRecipe] = useState<LayoutRecipe>(MOCK_RECIPE);
-  const [cards, setCards] = useState<Card[]>(() => resolveCards(MOCK_RECIPE));
+  const [byId, setById] = useState<Map<string, Card>>(() =>
+    cardMapFrom(MOCK_CARDS),
+  );
   const [status, setStatus] = useState<Status>("ready");
 
   useEffect(() => {
@@ -41,10 +48,10 @@ export default function PresenterApp() {
     setStatus("loading");
 
     let cancelled = false;
-    resolveRefs(decoded.cards)
+    resolveRefs(cardRefs(decoded))
       .then((resolved) => {
         if (cancelled) return;
-        setCards(resolved);
+        setById(cardMapFrom(resolved));
         setStatus("ready");
       })
       .catch((err) => {
@@ -61,7 +68,7 @@ export default function PresenterApp() {
     return <ResolveScreen status={status} />;
   }
 
-  return <Presenter recipe={recipe} cards={cards} />;
+  return <Presenter recipe={recipe} byId={byId} />;
 }
 
 /** A minimal, broadcast-clean overlay while cards resolve (or if resolution fails). */

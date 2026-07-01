@@ -24,6 +24,7 @@ import {
   boxStyle,
   type Box,
 } from "../../lib/stage.ts";
+import GridOverview from "./GridOverview.tsx";
 
 import marble from "../../../resources/marble-background.png";
 import frame from "../../../resources/host-frames-card-discussion.png";
@@ -138,6 +139,10 @@ function TitleSlide({ title }: { title: string }) {
 export default function Stage({ slide }: { slide: Slide }) {
   if (slide.kind === "title") {
     return <TitleSlide title={slide.title} />;
+  }
+
+  if (slide.kind === "grid") {
+    return <GridOverview cards={slide.cards} arrangement={slide.arrangement} />;
   }
 
   const { card, showCard, showArt } = slide;

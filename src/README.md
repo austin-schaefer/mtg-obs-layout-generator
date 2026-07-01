@@ -23,34 +23,38 @@ layouts/
 components/
   SiteHeader.astro    Wordmark + tagline
   SiteFooter.astro    Attribution + source link
-  Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
-                      generate, results strip, stage + grid preview, layout
-                      editor (#15), a real <form> query field (per-mode name so
-                      the browser remembers past queries), and an in-app
-                      "Present" overlay (mounts
-                      <Presenter> fullscreen — no navigation, so editing work is
-                      never lost; Esc returns to the builder).
+  Builder.tsx         Creation surface (#12/#26): source picker, per-mode inputs,
+                      Generate (seeds the deck), big stage preview of the selected
+                      slide + stepper, the deck editor, a real <form> query field
+                      (per-mode name so the browser remembers past queries), and an
+                      in-app "Present" overlay (mounts <Presenter> fullscreen — no
+                      navigation, so editing work is never lost; Esc returns).
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
-  LayoutEditor.tsx    Hand-edit panel (#15): drag-reorder (insertion-line drop
-                      indicator + ▲▼ fallback), exclude, grid WxH, and per-card
-                      face (card / art / both) — writes the recipe live.
-  Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
-                      L copy permalink), counter. Esc steps back out (grid →
-                      fullscreen → onExit); onExit set only for the builder overlay.
+  DeckEditor.tsx      The one list that is the show (#26): a row per slide
+                      (title / card / grid). Drag-reorder (insertion-line drop
+                      indicator + ▲▼ fallback), duplicate, remove, select (drives
+                      the preview); edit title text in place, pick a card's face
+                      (card / art / both), set a grid's WxH; add a Title, a Grid, or
+                      a searched Card after the selected slide — writes recipe live.
+  Presenter.tsx       Show surface: keyboard nav (← → step · F fullscreen ·
+                      L copy permalink), counter. Steps the whole deck (grid slides
+                      included — no separate grid mode). Esc steps back out
+                      (fullscreen → onExit); onExit set only for the builder overlay.
                       In fullscreen all overlay chrome is hidden — just the stage.
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
-                      decodes the recipe and re-hydrates its card identities into
+                      decodes the deck and re-hydrates its card identities into
                       real artwork via Scryfall (loading / error states)
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
-    Stage.tsx         Renders one slide (title / full-card / art) as canvas layers
-    GridOverview.tsx  Montage view — all visible cards tiled in a WxH grid
+    Stage.tsx         Renders one slide (title / card+art / grid) as canvas layers
+    GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
-  recipe.ts           Shared layout data model: Mode / CardRef / Card / LayoutRecipe;
-                      recipeToSlides() / visibleCards() / visibleIndices() derive
-                      what's shown; moveCard / toggleExcluded / setFace / setGrid are
-                      the editor's pure recipe→recipe edits
+  recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
+                      cardRefs() / cardMapFrom() / buildSlides() resolve + render the
+                      deck; insertSlide / moveSlide / removeSlide / duplicateSlide /
+                      setTitleText / setSlideFace / setGridArrangement are the
+                      editor's pure recipe→recipe edits (addressed by deck position)
   stage.ts            2560×1440 coordinate system + regions + useStageScale() +
                       usePreloadImages() (warms the deck's images so slides don't
                       load mid-presentation)
@@ -58,9 +62,12 @@ lib/
                       (lz-string compressed; see docs/permalink-scheme.md)
   mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
   resolve.ts          resolveDeck(mode, input) — the builder's card-resolution seam;
-                      dispatches scry → Scryfall search (#14), boost → booster roll (#17)
+                      dispatches scry → Scryfall search (#14), boost → booster roll
+                      (#17). Owns the generate-time Mode; re-exports searchCards for
+                      the deck editor's add-a-card search
   scryfall.ts         Browser-side Scryfall client (no key): rate-limited search,
-                      booster-rarity queries, and /cards/collection identity resolve
+                      searchCards (add-a-card picker), booster-rarity queries, and
+                      /cards/collection identity resolve
   booster.ts          Faithful TS port of booster_builder.py — set/odds tables +
                       rollBooster() drawing real cards, frozen to concrete identities
 pages/
@@ -75,17 +82,20 @@ styles/
 ## Data model
 
 `lib/recipe.ts` is the single shared shape the builder, the permalink, and the
-stage renderer all speak. A `LayoutRecipe` carries resolved card *identities*
-(`set` + `collector`) plus edits (order, exclusions, grid, card-vs-art, title) —
-never image URLs, which are reconstructed at render time. The permalink scheme
-that encodes it is documented in `docs/permalink-scheme.md`.
+stage renderer all speak. A `LayoutRecipe` is a **deck**: an ordered list of typed
+slides (title / card / grid). Generate seeds it once; after that the deck *is* the
+document, and every edit reorders / edits / adds / removes / duplicates entries in
+that one list. Card slides carry resolved *identities* (`set` + `collector`), never
+image URLs — those are reconstructed at render time (`buildSlides` + `cardMapFrom`).
+The permalink scheme that encodes it is documented in `docs/permalink-scheme.md`.
 
-Each card is **one** discussion slide showing the full card (vertical region) and
-its art (horizontal region) side by side; `recipe.faces` can narrow a card to
-card-only or art-only (the editor, #15, writes it). Full cards render at native
-size (never upscaled); card art is scaled to fill its region — both faithful to
-the pipeline's resize rules. The two host-cam boxes are painted plain white under
-the frame (the live surface has no transparency holes; webcams overlay in OBS).
+A **card** slide shows the full card (vertical region) and its art (horizontal
+region) side by side; its `face` can narrow it to card-only or art-only. Full cards
+render at native size (never upscaled); card art is scaled to fill its region — both
+faithful to the pipeline's resize rules. The two host-cam boxes are painted plain
+white under the frame (the live surface has no transparency holes; webcams overlay
+in OBS). A **grid** slide auto-montages every card slide currently in the deck (in
+deck order) and stays in sync as cards are added / removed / reordered.
 
 ## The stage
 

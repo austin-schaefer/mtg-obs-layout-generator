@@ -12,11 +12,22 @@
  * are rate-limited network calls (see `scryfall.ts`).
  */
 
-import type { Mode } from "./recipe.ts";
-import { ResolveError, searchDeck, type ResolvedDeck } from "./scryfall.ts";
+import {
+  ResolveError,
+  searchCards,
+  searchDeck,
+  type ResolvedDeck,
+} from "./scryfall.ts";
 import { rollBooster } from "./booster.ts";
 
-export { ResolveError, type ResolvedDeck };
+/**
+ * How the builder seeds a deck's initial cards. This is a *generate-time* input
+ * (which source to draw from), not part of the deck itself — the deck is just an
+ * ordered list of slides once seeded (`recipe.ts`).
+ */
+export type Mode = "scry" | "boost" | "custom";
+
+export { ResolveError, searchCards, type ResolvedDeck };
 
 /** Resolve a mode + input into a deck of renderable cards. */
 export async function resolveDeck(mode: Mode, input: string): Promise<ResolvedDeck> {

@@ -9,7 +9,13 @@
  * not committed.
  */
 
-import { placeholderCard, type Card, type CardRef, type LayoutRecipe } from "./recipe.ts";
+import {
+  FACE_BOTH,
+  SCHEMA_VERSION,
+  type Card,
+  type LayoutRecipe,
+  type SlideSpec,
+} from "./recipe.ts";
 
 export const MOCK_CARDS: Card[] = [
   {
@@ -86,28 +92,20 @@ export const MOCK_CARDS: Card[] = [
   },
 ];
 
-/** A demo recipe: title slide, then every card as both a full-card and an art
- *  slide (the default), with a 4-wide grid overview. */
+/** A demo deck: a title slide, every card as a both-faces slide (the default),
+ *  then a 4-wide grid montage of them all. */
 export const MOCK_RECIPE: LayoutRecipe = {
-  v: 1,
-  mode: "scry",
-  title: "Clock Spinning — Demo Reel",
-  cards: MOCK_CARDS.map(({ set, collector }) => ({ set, collector })),
-  grid: "4x0",
+  v: SCHEMA_VERSION,
+  slides: [
+    { kind: "title", text: "Clock Spinning — Demo Reel" },
+    ...MOCK_CARDS.map(
+      ({ set, collector }): SlideSpec => ({
+        kind: "card",
+        set,
+        collector,
+        face: FACE_BOTH,
+      }),
+    ),
+    { kind: "grid", arrangement: "4x0" },
+  ],
 };
-
-/**
- * Resolve a recipe's card identities to renderable cards against a catalog.
- * Identities not in the catalog get a placeholder. The live path (Scryfall /
- * booster) supplies a real catalog of resolved cards; the default mock catalog
- * backs the demo reel. Returned array aligns with `recipe.cards` by index.
- */
-export function resolveCards(
-  recipe: LayoutRecipe,
-  catalog: Card[] = MOCK_CARDS,
-): Card[] {
-  const byId = new Map(catalog.map((c) => [`${c.set}/${c.collector}`, c]));
-  return recipe.cards.map(
-    (ref: CardRef) => byId.get(`${ref.set}/${ref.collector}`) ?? placeholderCard(ref),
-  );
-}

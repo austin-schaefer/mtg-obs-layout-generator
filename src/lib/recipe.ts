@@ -1,18 +1,21 @@
 /**
- * The layout recipe — the single shared data model for Phase 1.
+ * The layout deck — the single shared data model.
  *
- * A recipe fully describes a layout: which cards (by compact identity), in what
- * order, which are excluded, the grid arrangement, which slides show art instead
- * of the full card, and the title text. It is the exact shape the permalink
- * encodes (`permalink.ts`) and the renderer consumes (`recipeToSlides`), so the
- * builder, the URL, and the stage all speak one language.
+ * A recipe is a **deck**: an ordered list of typed slides. That deck *is* the
+ * document — Generate seeds it once, and every edit afterward reorders, edits,
+ * adds, removes, or duplicates entries in this one list. It is the exact shape the
+ * permalink encodes (`permalink.ts`) and the renderer consumes (`buildSlides`), so
+ * the builder, the URL, and the stage all speak one language.
+ *
+ * Three slide types:
+ *   - **title** — editable text; any number, anywhere.
+ *   - **card**  — a resolved card identity (`set`/`collector`) + a face.
+ *   - **grid**  — an auto-montage of *all* card slides in the deck (kept in sync).
  *
  * Image URLs are NOT part of the recipe — only resolved card *identities* are.
  * URLs are reconstructed at render time (live, from Scryfall — or the mock catalog
  * for the demo reel), which is what keeps the permalink deterministic and small.
  */
-
-export type Mode = "scry" | "boost" | "custom";
 
 /** A card's compact, permalinkable identity, e.g. `{ set: "neo", collector: "123" }`. */
 export interface CardRef {
@@ -31,32 +34,28 @@ export interface Card extends CardRef {
   artImage: string;
 }
 
-export interface LayoutRecipe {
-  /** Schema version, so the decoder can migrate older URLs. */
-  v: number;
-  mode: Mode;
-  /** Resolved card identities, in original resolved order. */
-  cards: CardRef[];
-  /** Title-slide text (show name, set name, episode, …). */
-  title: string;
-  /** Permutation of `cards` indices; omit when it's the identity order. */
-  order?: number[];
-  /** Indices of `cards` to drop from the show. */
-  excluded?: number[];
-  /** Grid arrangement `WxH`; `0` = auto (e.g. `8x0`, `4x4`). */
-  grid?: string;
-  /**
-   * Per-card face selection, aligned to `cards`: `0` = full card only, `1` = art
-   * only, `2` = both (a card slide *and* an art slide). Omitted ⇒ both faces for
-   * every card. The editor (#15) writes this; the presenter steps through every
-   * slide it produces.
-   */
-  faces?: number[];
-}
-
 export const FACE_CARD = 0;
 export const FACE_ART = 1;
 export const FACE_BOTH = 2;
+
+/**
+ * One entry in the deck. `card` faces: `0` full card only, `1` art only, `2` both
+ * (the default — the full card and its art sit side by side and don't overlap, so
+ * one slide shows both at once). `grid` arrangement is `WxH`, `0` = auto.
+ */
+export type SlideSpec =
+  | { kind: "title"; text: string }
+  | { kind: "card"; set: string; collector: string; face: number }
+  | { kind: "grid"; arrangement: string };
+
+export interface LayoutRecipe {
+  /** Schema version, so the decoder can reject/migrate older URLs. */
+  v: number;
+  /** The deck — the ordered list of slides that *is* the show. */
+  slides: SlideSpec[];
+}
+
+export const SCHEMA_VERSION = 2;
 
 /**
  * A self-contained "card unavailable" image, used when an identity can't be
@@ -87,124 +86,160 @@ export function placeholderCard(ref: CardRef): Card {
 }
 
 /**
- * A card slide of the discussion layout. The full card (vertical region) and the
- * art (horizontal region) sit side by side and don't overlap, so one slide shows
- * both at once by default; `showCard` / `showArt` let the editor narrow to one.
+ * A rendered slide — what the stage draws. Derived from a `SlideSpec` by resolving
+ * card identities to real artwork (`buildSlides`). A `card` slide can show the full
+ * card, its art, or both; a `grid` slide carries the montaged cards.
  */
 export type Slide =
   | { kind: "title"; title: string }
-  | {
-      kind: "card";
-      card: Card;
-      showCard: boolean;
-      showArt: boolean;
-      index: number;
-    };
+  | { kind: "card"; card: Card; showCard: boolean; showArt: boolean }
+  | { kind: "grid"; cards: Card[]; arrangement: string };
 
-export const SCHEMA_VERSION = 1;
+// ── Card identity plumbing ──────────────────────────────────────────────────
 
-/**
- * Derive the ordered slide list a presenter steps through.
- *
- * `cards` must align with `recipe.cards` by index (same resolved identities).
- * Applies `order`, drops `excluded`, and emits one slide per visible card that
- * renders the full card *and* its art together (the default). `recipe.faces`
- * can narrow a card to card-only or art-only. Prepends the title slide. The grid
- * overview is built separately from the same visible cards.
- */
-export function recipeToSlides(recipe: LayoutRecipe, cards: Card[]): Slide[] {
-  const order = recipe.order ?? cards.map((_, i) => i);
-  const excluded = new Set(recipe.excluded ?? []);
-  const faces = recipe.faces ?? [];
+/** Canonical identity key for a card ref (case-insensitive set). */
+export function cardKey(ref: CardRef): string {
+  return `${ref.set.toLowerCase()}/${ref.collector}`;
+}
 
-  const slides: Slide[] = [{ kind: "title", title: recipe.title }];
-  for (const i of order) {
-    if (i < 0 || i >= cards.length || excluded.has(i)) continue;
-    const face = faces[i] ?? FACE_BOTH;
-    slides.push({
-      kind: "card",
-      card: cards[i],
-      showCard: face === FACE_CARD || face === FACE_BOTH,
-      showArt: face === FACE_ART || face === FACE_BOTH,
-      index: i,
-    });
+/** The identities of every card slide, in deck order (duplicates preserved). */
+export function cardRefs(recipe: LayoutRecipe): CardRef[] {
+  const refs: CardRef[] = [];
+  for (const s of recipe.slides) {
+    if (s.kind === "card") refs.push({ set: s.set, collector: s.collector });
   }
-  return slides;
+  return refs;
+}
+
+/** Index resolved cards by identity, for `buildSlides` to look up. */
+export function cardMapFrom(cards: Card[]): Map<string, Card> {
+  return new Map(cards.map((c) => [cardKey(c), c]));
 }
 
 /**
- * The `recipe.cards` indices that are shown, in display order: `order` applied,
- * `excluded` dropped, out-of-range dropped. This is the one place display order
- * is derived — the grid, the thumbnails, and slide-jumping all key off it, so an
- * index here is always a real `recipe.cards`/`cards` index (not a display slot).
+ * Derive the ordered rendered slides the presenter steps through.
+ *
+ * `byId` resolves card identities to real artwork; a missing identity renders as a
+ * placeholder so the deck still steps in order. A **grid slide montages every card
+ * slide currently in the deck** (in deck order), so it stays in sync automatically
+ * as cards are added / removed / reordered — no separate grid state to maintain.
  */
-export function visibleIndices(recipe: LayoutRecipe, count: number): number[] {
-  const order = recipe.order ?? Array.from({ length: count }, (_, i) => i);
-  const excluded = new Set(recipe.excluded ?? []);
-  return order.filter((i) => i >= 0 && i < count && !excluded.has(i));
+export function buildSlides(
+  recipe: LayoutRecipe,
+  byId: Map<string, Card>,
+): Slide[] {
+  const lookup = (ref: CardRef): Card =>
+    byId.get(cardKey(ref)) ?? placeholderCard(ref);
+  const gridCards = cardRefs(recipe).map(lookup);
+
+  return recipe.slides.map((s): Slide => {
+    if (s.kind === "title") return { kind: "title", title: s.text };
+    if (s.kind === "grid") {
+      return { kind: "grid", cards: gridCards, arrangement: s.arrangement };
+    }
+    const card = lookup(s);
+    return {
+      kind: "card",
+      card,
+      showCard: s.face !== FACE_ART,
+      showArt: s.face !== FACE_CARD,
+    };
+  });
 }
 
-/** The visible cards (post order/exclude), used for the grid overview. */
-export function visibleCards(recipe: LayoutRecipe, cards: Card[]): Card[] {
-  return visibleIndices(recipe, cards.length).map((i) => cards[i]);
+// ── Deck edits ──────────────────────────────────────────────────────────────
+// Pure recipe→recipe edits addressed by deck *position* (0-based). Each returns a
+// new recipe; an out-of-range position is a no-op. Positions are stable slide
+// indices — since one SlideSpec renders one slide, a deck position is a slide index.
+
+const withSlides = (recipe: LayoutRecipe, slides: SlideSpec[]): LayoutRecipe => ({
+  ...recipe,
+  slides,
+});
+
+/** Insert `spec` at `pos` (clamped to the deck bounds). */
+export function insertSlide(
+  recipe: LayoutRecipe,
+  pos: number,
+  spec: SlideSpec,
+): LayoutRecipe {
+  const at = Math.max(0, Math.min(pos, recipe.slides.length));
+  const slides = [...recipe.slides];
+  slides.splice(at, 0, spec);
+  return withSlides(recipe, slides);
 }
 
-// ── Editor operations ──────────────────────────────────────────────────────
-// Pure recipe→recipe edits the layout editor (#15) applies. Each returns a new
-// recipe and normalizes: an optional field that lands back on its default
-// (identity order, no exclusions, all-both faces) is dropped so the permalink
-// and the "is this pristine?" checks stay clean.
-
-/** Full display permutation — every `cards` index, `order` applied or identity. */
-export function displayOrder(recipe: LayoutRecipe): number[] {
-  return recipe.order ?? recipe.cards.map((_, i) => i);
-}
-
-function isIdentity(order: number[]): boolean {
-  return order.every((v, i) => v === i);
-}
-
-/** Move the card at display position `from` to display position `to`. */
-export function moveCard(
+/** Move the slide at `from` to `to` (both display positions). */
+export function moveSlide(
   recipe: LayoutRecipe,
   from: number,
   to: number,
 ): LayoutRecipe {
-  const order = displayOrder(recipe);
-  if (from === to || from < 0 || to < 0 || from >= order.length || to >= order.length) {
-    return recipe;
-  }
-  const next = [...order];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return { ...recipe, order: isIdentity(next) ? undefined : next };
+  const n = recipe.slides.length;
+  if (from === to || from < 0 || to < 0 || from >= n || to >= n) return recipe;
+  const slides = [...recipe.slides];
+  const [moved] = slides.splice(from, 1);
+  slides.splice(to, 0, moved);
+  return withSlides(recipe, slides);
 }
 
-/** Toggle whether the card at `cards` index `index` is dropped from the show. */
-export function toggleExcluded(recipe: LayoutRecipe, index: number): LayoutRecipe {
-  const excluded = new Set(recipe.excluded ?? []);
-  if (excluded.has(index)) excluded.delete(index);
-  else excluded.add(index);
-  const next = [...excluded].sort((a, b) => a - b);
-  return { ...recipe, excluded: next.length ? next : undefined };
+/** Remove the slide at `pos`. */
+export function removeSlide(recipe: LayoutRecipe, pos: number): LayoutRecipe {
+  if (pos < 0 || pos >= recipe.slides.length) return recipe;
+  const slides = [...recipe.slides];
+  slides.splice(pos, 1);
+  return withSlides(recipe, slides);
 }
 
-/** Set the face (card / art / both) for the card at `cards` index `index`. */
-export function setFace(
+/** Duplicate the slide at `pos`, inserting the copy right after it. */
+export function duplicateSlide(recipe: LayoutRecipe, pos: number): LayoutRecipe {
+  if (pos < 0 || pos >= recipe.slides.length) return recipe;
+  const slides = [...recipe.slides];
+  slides.splice(pos + 1, 0, { ...slides[pos] });
+  return withSlides(recipe, slides);
+}
+
+/** Replace the slide at `pos` with `next` (guards kind at the call site). */
+function replaceSlide(
   recipe: LayoutRecipe,
-  index: number,
+  pos: number,
+  next: SlideSpec,
+): LayoutRecipe {
+  if (pos < 0 || pos >= recipe.slides.length) return recipe;
+  const slides = [...recipe.slides];
+  slides[pos] = next;
+  return withSlides(recipe, slides);
+}
+
+/** Set a title slide's text. */
+export function setTitleText(
+  recipe: LayoutRecipe,
+  pos: number,
+  text: string,
+): LayoutRecipe {
+  const s = recipe.slides[pos];
+  if (s?.kind !== "title") return recipe;
+  return replaceSlide(recipe, pos, { ...s, text });
+}
+
+/** Set a card slide's face (card / art / both). */
+export function setSlideFace(
+  recipe: LayoutRecipe,
+  pos: number,
   face: number,
 ): LayoutRecipe {
-  const faces = recipe.cards.map((_, i) => recipe.faces?.[i] ?? FACE_BOTH);
-  faces[index] = face;
-  return {
-    ...recipe,
-    faces: faces.every((f) => f === FACE_BOTH) ? undefined : faces,
-  };
+  const s = recipe.slides[pos];
+  if (s?.kind !== "card") return recipe;
+  return replaceSlide(recipe, pos, { ...s, face });
 }
 
-/** Set the grid arrangement (`WxH`); blank ⇒ auto. */
-export function setGrid(recipe: LayoutRecipe, grid: string): LayoutRecipe {
-  const trimmed = grid.trim();
-  return { ...recipe, grid: trimmed || undefined };
+/** Set a grid slide's `WxH` arrangement (blank ⇒ auto). */
+export function setGridArrangement(
+  recipe: LayoutRecipe,
+  pos: number,
+  arrangement: string,
+): LayoutRecipe {
+  const s = recipe.slides[pos];
+  if (s?.kind !== "grid") return recipe;
+  return replaceSlide(recipe, pos, { ...s, arrangement: arrangement.trim() });
 }

@@ -14,7 +14,7 @@ this README in the same commit (see `.githooks/pre-commit`).
 |---|---|
 | `prune-worktrees.sh` | SessionStart hook. Read-only: detects `.claude/worktrees/*` whose branch is already merged to `main` and asks the agent to offer pruning. Never prunes on its own. |
 | `link-worktree-settings.sh` | SessionStart / `EnterWorktree` hook. Symlinks `.claude/settings.local.json` from the main repo into a worktree so runtime "Allow always" approvals are shared across sessions. Idempotent; won't clobber a real file. |
-| `permalink-spike.ts` | Issue #13 de-risk harness. Measures the permalink URL length at the 100-card cap and asserts a lossless round-trip across every edit field (order / excluded / grid / faces). Run: `node --experimental-strip-types scripts/permalink-spike.ts`. Scheme documented in `docs/permalink-scheme.md`. |
+| `permalink-spike.ts` | Permalink URL-length + round-trip harness. Measures the encoded length at the 100-card cap and asserts a lossless round-trip on a full slide deck (title / card / grid slides, mixed faces). Run: `node --experimental-strip-types scripts/permalink-spike.ts`. Scheme documented in `docs/permalink-scheme.md`. |
 
 The hook scripts are wired up in `.claude/settings.json` under `hooks`.
 
