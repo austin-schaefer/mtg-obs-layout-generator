@@ -14,7 +14,12 @@ import {
   encodeRecipe,
   decodeRecipe,
 } from "../src/lib/permalink.ts";
-import { SCHEMA_VERSION, type LayoutRecipe } from "../src/lib/recipe.ts";
+import {
+  FACE_BOTH,
+  SCHEMA_VERSION,
+  type LayoutRecipe,
+  type SlideSpec,
+} from "../src/lib/recipe.ts";
 
 // A generic pool of real set codes (public knowledge), used only to make the
 // worst-case measurement realistic. Not an episode idea list.
@@ -40,13 +45,17 @@ function naiveBase64Len(recipe: LayoutRecipe): number {
   return Buffer.from(json, "utf8").toString("base64url").length;
 }
 
+function cardCount(recipe: LayoutRecipe): number {
+  return recipe.slides.filter((s) => s.kind === "card").length;
+}
+
 function report(label: string, recipe: LayoutRecipe): boolean {
   const encoded = encodeRecipe(recipe);
   const decoded = decodeRecipe(encoded);
   const lossless = canonical(decoded) === canonical(recipe);
 
   const url = baseUrl(encoded);
-  console.log(`\n## ${label} (${recipe.cards.length} cards)`);
+  console.log(`\n## ${label} (${cardCount(recipe)} cards, ${recipe.slides.length} slides)`);
   console.log(`  naive base64url payload : ${naiveBase64Len(recipe)} chars`);
   console.log(`  encoded (lz-string)     : ${encoded.length} chars`);
   console.log(`  full /present URL        : ${url.length} chars`);
@@ -54,31 +63,44 @@ function report(label: string, recipe: LayoutRecipe): boolean {
   return lossless;
 }
 
-// --- Best case: a single set, 100 cards, no edits -------------------------
+// --- Best case: a single set, 100 card slides, no per-card edits -----------
 const bestCase: LayoutRecipe = {
   v: SCHEMA_VERSION,
-  mode: "scry",
-  title: "Triple-Pip Creatures",
-  cards: Array.from({ length: 100 }, (_, i) => ({
-    set: "neo",
-    collector: String(i + 1),
-  })),
+  slides: [
+    { kind: "title", text: "Triple-Pip Creatures" },
+    ...Array.from(
+      { length: 100 },
+      (_, i): SlideSpec => ({
+        kind: "card",
+        set: "neo",
+        collector: String(i + 1),
+        face: FACE_BOTH,
+      }),
+    ),
+    { kind: "grid", arrangement: "10x0" },
+  ],
 };
 
-// --- Worst case: many sets, alphanumeric collectors, every edit field set ---
+// --- Worst case: many sets, alnum collectors, cycling faces, extra title/grid
+// slides scattered through the deck ----------------------------------------
 const worstCase: LayoutRecipe = {
   v: SCHEMA_VERSION,
-  mode: "boost",
-  title: "Clock Spinning Podcast — Episode 100 Spectacular Showcase",
-  cards: Array.from({ length: 100 }, (_, i) => ({
-    set: SET_POOL[i % SET_POOL.length],
-    collector: `${i + 1}${"abc"[i % 3]}`, // non-numeric collectors (promos, variants)
-  })),
-  order: Array.from({ length: 100 }, (_, i) => 99 - i), // reversed
-  excluded: [3, 17, 42, 88],
-  grid: "10x0",
-  // per-card face codes: cycle card-only / art-only / both
-  faces: Array.from({ length: 100 }, (_, i) => i % 3),
+  slides: [
+    { kind: "title", text: "Clock Spinning Podcast — Episode 100 Spectacular Showcase" },
+    ...Array.from({ length: 100 }, (_, i): SlideSpec[] => {
+      const card: SlideSpec = {
+        kind: "card",
+        set: SET_POOL[i % SET_POOL.length],
+        collector: `${i + 1}${"abc"[i % 3]}`, // promos / variants
+        face: i % 3, // cycle card-only / art-only / both
+      };
+      // Sprinkle a divider title + a grid every 25 cards.
+      return i > 0 && i % 25 === 0
+        ? [{ kind: "title", text: `Act ${i / 25}` }, { kind: "grid", arrangement: "8x0" }, card]
+        : [card];
+    }).flat(),
+    { kind: "grid", arrangement: "10x0" },
+  ],
 };
 
 console.log("# Permalink spike — measured at the 100-card cap");

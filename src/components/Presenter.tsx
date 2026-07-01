@@ -1,22 +1,23 @@
 /**
  * Presenter — the show surface you screen-share. Full-bleed black stage, keyboard
- * stepping, a grid overview, a fullscreen toggle, and a subtle position counter.
- * Wraps the 2560×1440 stage via <StageFrame> and swaps between the current slide
- * and the grid overview.
+ * stepping, a fullscreen toggle, and a subtle position counter. Wraps the
+ * 2560×1440 stage via <StageFrame> and steps the deck one slide at a time — title,
+ * card, and grid slides all live in the same deck, so there's no separate grid mode.
  *
- * Keys:  ← / → (also ↑ ↓, Space, PageUp/Down) step · G grid · F fullscreen ·
- *        Esc steps back out (close grid → exit fullscreen → `onExit`).
+ * Keys:  ← / → (also ↑ ↓, Space, PageUp/Down) step · F fullscreen · L copy link ·
+ *        Esc steps back out (exit fullscreen → `onExit`).
  *
  * `onExit` is set when the presenter runs as an in-app overlay (the builder's
  * "Present" button): Esc with nothing left to close, or the exit button, hands
  * control back to the host without a page navigation, so no work is lost. The
- * standalone /present page leaves it unset — there Esc just closes grid/fullscreen.
+ * standalone /present page leaves it unset — there Esc just exits fullscreen.
  */
 
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import {
-  recipeToSlides,
-  visibleCards,
+  buildSlides,
+  cardKey,
+  cardRefs,
   type Card,
   type LayoutRecipe,
 } from "../lib/recipe.ts";
@@ -24,11 +25,11 @@ import { encodeRecipe } from "../lib/permalink.ts";
 import { usePreloadImages } from "../lib/stage.ts";
 import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
-import GridOverview from "./stage/GridOverview.tsx";
 
 interface Props {
   recipe: LayoutRecipe;
-  cards: Card[];
+  /** Resolved cards indexed by identity (`cardMapFrom`). */
+  byId: Map<string, Card>;
   /** When set, Esc (with nothing left to close) and the exit button call this
    *  instead of navigating — used by the builder's in-app "Present" overlay. */
   onExit?: () => void;
@@ -37,16 +38,19 @@ interface Props {
 const NEXT_KEYS = new Set(["ArrowRight", "ArrowDown", "PageDown", " ", "Spacebar"]);
 const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp", "Backspace"]);
 
-export default function Presenter({ recipe, cards, onExit }: Props) {
-  const slides = recipeToSlides(recipe, cards);
-  const gridCards = visibleCards(recipe, cards);
+export default function Presenter({ recipe, byId, onExit }: Props) {
+  const slides = buildSlides(recipe, byId);
 
   // Preload the whole deck (both faces) so no slide loads mid-presentation.
-  usePreloadImages(cards.flatMap((c) => [c.cardImage, c.artImage]));
+  usePreloadImages(
+    cardRefs(recipe).flatMap((ref) => {
+      const c = byId.get(cardKey(ref));
+      return c ? [c.cardImage, c.artImage] : [];
+    }),
+  );
 
   const rootRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [gridOpen, setGridOpen] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
   const [copied, setCopied] = useState(false);
   // Fullscreen is the broadcast/screen-share surface — hide every overlay so
@@ -93,17 +97,13 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "g" || e.key === "G") {
-        setGridOpen((g) => !g);
-      } else if (e.key === "f" || e.key === "F") {
+      if (e.key === "f" || e.key === "F") {
         toggleFullscreen();
       } else if (e.key === "l" || e.key === "L") {
         copyPermalink();
       } else if (e.key === "Escape") {
-        // Step back out, one layer at a time: grid → fullscreen → leave.
-        if (gridOpen) {
-          setGridOpen(false);
-        } else if (document.fullscreenElement) {
+        // Step back out, one layer at a time: fullscreen → leave.
+        if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {});
         } else {
           onExit?.();
@@ -120,7 +120,7 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, toggleFullscreen, copyPermalink, gridOpen, onExit]);
+  }, [step, toggleFullscreen, copyPermalink, onExit]);
 
   const overlay: Record<string, string> = {
     position: "absolute",
@@ -136,11 +136,7 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
       style={{ position: "absolute", inset: "0", background: "#000" }}
     >
       <StageFrame>
-        {gridOpen ? (
-          <GridOverview cards={gridCards} arrangement={recipe.grid} />
-        ) : (
-          <Stage slide={slides[index]} />
-        )}
+        <Stage slide={slides[index]} />
       </StageFrame>
 
       {/* Overlay chrome — hidden in fullscreen so only the clean stage shows. */}
@@ -157,9 +153,7 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
           textShadow: "0 1px 4px rgba(0,0,0,0.8)",
         }}
       >
-        {gridOpen
-          ? `Grid · ${gridCards.length} card${gridCards.length === 1 ? "" : "s"}`
-          : `${index + 1} / ${slides.length}`}
+        {index + 1} / {slides.length}
       </div>
 
       {/* One-time controls hint — fades after the first keypress. */}
@@ -173,7 +167,7 @@ export default function Presenter({ recipe, cards, onExit }: Props) {
             textShadow: "0 1px 4px rgba(0,0,0,0.8)",
           }}
         >
-          ← → step · G grid · F fullscreen · L copy link
+          ← → step · F fullscreen · L copy link
           {onExit ? " · Esc exit" : ""}
         </div>
       )}

@@ -1,5 +1,5 @@
 /**
- * Permalink encode/decode — a layout recipe ⇄ a URL-safe string.
+ * Permalink encode/decode — a layout deck ⇄ a URL-safe string.
  *
  * The site has no backend and no database: a layout is reproduced entirely from
  * the URL. So the encoding has to be both lossless and compact enough to survive
@@ -7,9 +7,10 @@
  * measured length budget and the rationale; `scripts/permalink-spike.ts` is the
  * harness that validates both.
  *
- * Scheme (v1):
- *   1. Project the recipe onto a compact positional array, dictionary-encoding
- *      the repeated set codes (a search or booster is usually one or a few sets).
+ * Scheme (v2):
+ *   1. Project the deck onto a compact positional array, dictionary-encoding the
+ *      repeated set codes (a search or booster is usually one or a few sets) and
+ *      tagging each slide by type.
  *   2. `JSON.stringify` it.
  *   3. Compress with lz-string's `compressToEncodedURIComponent` (URL-safe out).
  *
@@ -19,32 +20,38 @@
  */
 
 import lzString from "lz-string";
-import { SCHEMA_VERSION, type LayoutRecipe, type Mode } from "./recipe.ts";
+import {
+  FACE_BOTH,
+  SCHEMA_VERSION,
+  type LayoutRecipe,
+  type SlideSpec,
+} from "./recipe.ts";
 
 // lz-string ships as CommonJS; default-import interop works in both Vite and
 // Node's ESM loader (named imports from the CJS build do not).
 const { compressToEncodedURIComponent, decompressFromEncodedURIComponent } =
   lzString;
 
-const MODE_CODES: Record<Mode, number> = { scry: 0, boost: 1, custom: 2 };
-const MODE_BY_CODE: Mode[] = ["scry", "boost", "custom"];
+// Slide type tags in the compact form.
+const T_TITLE = 0;
+const T_CARD = 1;
+const T_GRID = 2;
 
 /**
- * Compact positional form: `[v, modeCode, title, sets, cards, order, excluded,
- * grid, faces]`, where `cards` is `[setIdx, collector][]` against the `sets`
- * dictionary, and absent optional fields are `0` (cheaper than `null`/`[]`).
+ * Compact slide forms, tagged by type:
+ *   - title: `[0, text]`
+ *   - card:  `[1, setIdx, collector]` (face BOTH — the default, omitted) or
+ *            `[1, setIdx, collector, face]` when the face isn't BOTH
+ *   - grid:  `[2, arrangement]`
  */
-type Compact = [
-  number, // v
-  number, // mode code
-  string, // title
-  string[], // set dictionary
-  [number, string][], // cards: [setIdx, collector]
-  number[] | 0, // order
-  number[] | 0, // excluded
-  string | 0, // grid
-  number[] | 0, // faces (per-card face codes)
-];
+type CompactSlide =
+  | [typeof T_TITLE, string]
+  | [typeof T_CARD, number, string]
+  | [typeof T_CARD, number, string, number]
+  | [typeof T_GRID, string];
+
+/** Compact positional form: `[v, sets, slides]`, `sets` the set-code dictionary. */
+type Compact = [number, string[], CompactSlide[]];
 
 function toCompact(recipe: LayoutRecipe): Compact {
   const sets: string[] = [];
@@ -56,38 +63,41 @@ function toCompact(recipe: LayoutRecipe): Compact {
     }
     return i;
   };
-  const cards = recipe.cards.map(
-    (c): [number, string] => [setIndex(c.set), c.collector],
-  );
-  return [
-    recipe.v,
-    MODE_CODES[recipe.mode],
-    recipe.title,
-    sets,
-    cards,
-    recipe.order ?? 0,
-    recipe.excluded ?? 0,
-    recipe.grid ?? 0,
-    recipe.faces ?? 0,
-  ];
+
+  const slides = recipe.slides.map((s): CompactSlide => {
+    if (s.kind === "title") return [T_TITLE, s.text];
+    if (s.kind === "grid") return [T_GRID, s.arrangement];
+    const idx = setIndex(s.set);
+    return s.face === FACE_BOTH
+      ? [T_CARD, idx, s.collector]
+      : [T_CARD, idx, s.collector, s.face];
+  });
+
+  return [recipe.v, sets, slides];
 }
 
 function fromCompact(c: Compact): LayoutRecipe {
-  const [v, modeCode, title, sets, cards, order, excluded, grid, faces] = c;
-  const recipe: LayoutRecipe = {
+  const [v, sets, slides] = c;
+  return {
     v,
-    mode: MODE_BY_CODE[modeCode] ?? "scry",
-    title,
-    cards: cards.map(([setIdx, collector]) => ({
-      set: sets[setIdx],
-      collector,
-    })),
+    slides: slides.map((s): SlideSpec => {
+      switch (s[0]) {
+        case T_TITLE:
+          return { kind: "title", text: s[1] };
+        case T_GRID:
+          return { kind: "grid", arrangement: s[1] };
+        default: {
+          const [, setIdx, collector, face] = s;
+          return {
+            kind: "card",
+            set: sets[setIdx],
+            collector,
+            face: face ?? FACE_BOTH,
+          };
+        }
+      }
+    }),
   };
-  if (order !== 0) recipe.order = order;
-  if (excluded !== 0) recipe.excluded = excluded;
-  if (grid !== 0) recipe.grid = grid;
-  if (faces !== 0) recipe.faces = faces;
-  return recipe;
 }
 
 /** Encode a recipe to a URL-safe permalink string. */
@@ -97,7 +107,7 @@ export function encodeRecipe(recipe: LayoutRecipe): string {
 
 /**
  * Decode a permalink string back to a recipe.
- * Throws if the string is malformed or from an unsupported schema version.
+ * Throws if the string is malformed or not the supported schema version.
  */
 export function decodeRecipe(encoded: string): LayoutRecipe {
   const json = decompressFromEncodedURIComponent(encoded);
@@ -111,8 +121,10 @@ export function decodeRecipe(encoded: string): LayoutRecipe {
   if (!Array.isArray(compact) || typeof compact[0] !== "number") {
     throw new Error("permalink: unrecognized shape");
   }
-  if (compact[0] > SCHEMA_VERSION) {
-    throw new Error(`permalink: schema v${compact[0]} is newer than supported`);
+  // No in-the-wild v1 links to migrate (pre-launch); only the current schema is
+  // supported. Reject anything else rather than mis-parse an old shape.
+  if (compact[0] !== SCHEMA_VERSION) {
+    throw new Error(`permalink: unsupported schema v${compact[0]}`);
   }
   return fromCompact(compact);
 }
