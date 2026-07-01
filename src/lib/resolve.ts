@@ -16,6 +16,8 @@ import {
   ResolveError,
   searchCards,
   searchDeck,
+  searchPrintings,
+  type CardOption,
   type ResolvedDeck,
 } from "./scryfall.ts";
 import { rollBooster } from "./booster.ts";
@@ -27,7 +29,13 @@ import { rollBooster } from "./booster.ts";
  */
 export type Mode = "scry" | "boost" | "custom";
 
-export { ResolveError, searchCards, type ResolvedDeck };
+export {
+  ResolveError,
+  searchCards,
+  searchPrintings,
+  type CardOption,
+  type ResolvedDeck,
+};
 
 /** Resolve a mode + input into a deck of renderable cards. */
 export async function resolveDeck(mode: Mode, input: string): Promise<ResolvedDeck> {

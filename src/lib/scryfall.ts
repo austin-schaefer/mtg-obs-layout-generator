@@ -37,6 +37,14 @@ const COLLECTION_BATCH = 75;
  */
 const MAX_SEARCH_CARDS = 100;
 
+/**
+ * Upper bound on printings pulled for a single card (#31). A card like Lightning
+ * Bolt has dozens of printings; a few have hundreds. Capping keeps the picker
+ * responsive and its thumbnail fetch bounded — the host still sees a broad,
+ * representative spread of art to choose from.
+ */
+const MAX_PRINTINGS = 60;
+
 /** Raised when an input can't be resolved (empty query, no matches, thin set, …). */
 export class ResolveError extends Error {
   /** The HTTP status, when the failure came from a Scryfall response. */
@@ -94,10 +102,26 @@ interface ImageUris {
 
 interface ScryfallCard {
   set: string;
+  set_name?: string;
   collector_number: string;
   name: string;
   image_uris?: ImageUris;
   card_faces?: { image_uris?: ImageUris }[];
+  /** Scryfall search URI (already `unique=prints`) for every printing (#31). */
+  prints_search_uri?: string;
+}
+
+/**
+ * A search hit the add-a-card picker offers — a renderable `Card` plus the extra
+ * fields the picker needs but the deck doesn't: a human set name to label the
+ * option and the URI to fetch this card's other printings (#31). These are
+ * transient (never permalinked); only the `Card` identity lands on a slide.
+ */
+export interface CardOption extends Card {
+  /** Human-readable set name, e.g. "Dominaria United". */
+  setName?: string;
+  /** Scryfall search URI for every printing of this card (`unique=prints`). */
+  printsUri?: string;
 }
 
 /** Throttled JSON GET. Returns the parsed body; throws on network/HTTP error. */
@@ -154,20 +178,28 @@ function toCard(card: ScryfallCard): Card | null {
   };
 }
 
-/**
- * Run a Scryfall search and return every renderable card, following pagination
- * up to `max`. A search that matches nothing (Scryfall answers 404) yields `[]`
- * rather than throwing, so callers can phrase their own error.
- */
-export async function searchAll(
-  query: string,
-  max: number = MAX_SEARCH_CARDS,
-): Promise<Card[]> {
-  const cards: Card[] = [];
-  let url: string | undefined =
-    `${API_BASE}/cards/search?unique=cards&q=${encodeURIComponent(query)}`;
+/** Augment a renderable card with the picker-only fields (set name, prints URI). */
+function toCardOption(card: ScryfallCard): CardOption | null {
+  const base = toCard(card);
+  if (!base) return null;
+  return { ...base, setName: card.set_name, printsUri: card.prints_search_uri };
+}
 
-  while (url && cards.length < max) {
+/**
+ * Walk a Scryfall search from `startUrl`, mapping each hit with `map` and
+ * following pagination until `max` results accrue. A search that matches nothing
+ * (Scryfall answers 404) yields `[]` rather than throwing, so callers can phrase
+ * their own error. Every page goes through the shared throttle via `getJson`.
+ */
+async function paginate<T>(
+  startUrl: string,
+  max: number,
+  map: (card: ScryfallCard) => T | null,
+): Promise<T[]> {
+  const out: T[] = [];
+  let url: string | undefined = startUrl;
+
+  while (url && out.length < max) {
     let page: ScryfallList;
     try {
       page = await getJson<ScryfallList>(url);
@@ -178,14 +210,30 @@ export async function searchAll(
       throw err;
     }
     for (const raw of page.data) {
-      const card = toCard(raw);
-      if (card) cards.push(card);
-      if (cards.length >= max) break;
+      const mapped = map(raw);
+      if (mapped) out.push(mapped);
+      if (out.length >= max) break;
     }
     url = page.has_more ? page.next_page : undefined;
   }
 
-  return cards;
+  return out;
+}
+
+/**
+ * Run a Scryfall search and return every renderable card, following pagination
+ * up to `max`. A search that matches nothing (Scryfall answers 404) yields `[]`
+ * rather than throwing, so callers can phrase their own error.
+ */
+export async function searchAll(
+  query: string,
+  max: number = MAX_SEARCH_CARDS,
+): Promise<Card[]> {
+  return paginate(
+    `${API_BASE}/cards/search?unique=cards&q=${encodeURIComponent(query)}`,
+    max,
+    toCard,
+  );
 }
 
 /**
@@ -211,10 +259,31 @@ export async function searchDeck(query: string): Promise<ResolvedDeck> {
 export async function searchCards(
   query: string,
   limit: number = 12,
-): Promise<Card[]> {
+): Promise<CardOption[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
-  return searchAll(trimmed, limit);
+  return paginate(
+    `${API_BASE}/cards/search?unique=cards&q=${encodeURIComponent(trimmed)}`,
+    limit,
+    toCardOption,
+  );
+}
+
+/**
+ * Fetch the available printings of a chosen card (#31), so the host can pick the
+ * exact art/frame/border that lands on a slide. Follows the card's
+ * `prints_search_uri` (already `unique=prints`) through the same throttled
+ * pagination as every other request, bounded to `MAX_PRINTINGS`. Falls back to
+ * the card itself when Scryfall exposes no prints URI or returns nothing, so the
+ * caller always has at least one option.
+ */
+export async function searchPrintings(
+  card: CardOption,
+  max: number = MAX_PRINTINGS,
+): Promise<CardOption[]> {
+  if (!card.printsUri) return [card];
+  const printings = await paginate(card.printsUri, max, toCardOption);
+  return printings.length > 0 ? printings : [card];
 }
 
 /**
