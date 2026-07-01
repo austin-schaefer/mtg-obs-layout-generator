@@ -18,14 +18,18 @@ pipeline (see the epic, issue #19). Static build, deployed on Netlify.
 layouts/
   BaseLayout.astro    Document shell: <head>, fonts, global.css, body slot
 components/
-  SiteHeader.astro    Wordmark + tagline + gold accent rule
+  SiteHeader.astro    Wordmark + tagline
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
                       generate, results strip, stage preview, presenter handoff,
-                      edit-controls shell (behavior fills in with the editor, #15)
+                      edit-controls shell (behavior fills in with the editor, #15).
+                      The Scryfall field defaults to a filter prefix (oldest paper
+                      printing, release order, minus digital/un/Universes Beyond).
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
-                      L copy permalink), counter
-  PresenterApp.tsx    Client entry — picks recipe (mock or ?r= permalink), resolves cards
+                      Esc close grid / exit fullscreen · L copy permalink), counter
+  PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
+                      decodes the recipe and re-hydrates its card identities into
+                      real artwork via Scryfall (loading / error states)
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
     Stage.tsx         Renders one slide (title / full-card / art) as canvas layers
@@ -36,9 +40,13 @@ lib/
   stage.ts            2560×1440 coordinate system + regions + useStageScale() hook
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)
-  mock-cards.ts       Phase-1 mock catalog + demo recipe (real Scryfall modes land later)
+  mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
   resolve.ts          resolveDeck(mode, input) — the builder's card-resolution seam;
-                      mock-backed now, replaced by Scryfall (#14) / booster (#17)
+                      dispatches scry → Scryfall search (#14), boost → booster roll (#17)
+  scryfall.ts         Browser-side Scryfall client (no key): rate-limited search,
+                      booster-rarity queries, and /cards/collection identity resolve
+  booster.ts          Faithful TS port of booster_builder.py — set/odds tables +
+                      rollBooster() drawing real cards, frozen to concrete identities
 pages/
   index.astro         Landing intro + the builder (creation surface)
   present.astro       Full-viewport presenter (the screen-share surface)

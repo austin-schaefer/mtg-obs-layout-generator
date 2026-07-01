@@ -77,7 +77,10 @@ export default function Presenter({ recipe, cards }: Props) {
         copyPermalink();
       } else if (e.key === "Escape") {
         setGridOpen(false);
-        return; // let the browser also exit fullscreen
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+        return;
       } else if (NEXT_KEYS.has(e.key)) {
         step(1);
       } else if (PREV_KEYS.has(e.key)) {

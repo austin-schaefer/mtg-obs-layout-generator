@@ -1,64 +1,32 @@
 /**
- * Builder card resolution — the seam between the builder shell (#12) and the
- * real mode implementations (Scryfall #14, booster #17).
+ * Builder card resolution — turns a mode + input into renderable cards.
  *
- * "Generate" in the builder calls `resolveDeck(mode, input)` to turn a query or
- * set code into concrete, renderable cards. Until the real modes land, every
- * mode resolves against the Phase-1 mock catalog (`mock-cards.ts`) so the whole
- * surface — results strip, stage preview, and presenter handoff — is exercised
- * end to end. #14/#17 replace the per-mode branches with live resolution; the
- * builder doesn't change, because the shape returned here is the contract.
+ * "Generate" in the builder calls `resolveDeck(mode, input)`:
+ *   - `scry`  → a browser-side Scryfall search (#14).
+ *   - `boost` → a faithful booster roll for the set code (#17), frozen to
+ *     concrete card identities so the permalink reproduces the exact pack.
+ *   - `custom` → not wired yet ("coming soon").
  *
- * Resolution is async on purpose: the real Scryfall/booster paths are network
- * calls (rate-limited per the design skill), so the builder already awaits a
- * promise and renders a pending state.
+ * The returned `ResolvedDeck` (cards + title, plus an optional suggested grid) is
+ * the contract the builder consumes; resolution is async because both live paths
+ * are rate-limited network calls (see `scryfall.ts`).
  */
 
-import { MOCK_CARDS } from "./mock-cards.ts";
-import type { Card, Mode } from "./recipe.ts";
+import type { Mode } from "./recipe.ts";
+import { ResolveError, searchDeck, type ResolvedDeck } from "./scryfall.ts";
+import { rollBooster } from "./booster.ts";
 
-export interface ResolvedDeck {
-  /** Resolved, renderable cards in their natural resolved order. */
-  cards: Card[];
-  /** A sensible default title for the layout; the host can edit it. */
-  title: string;
-}
+export { ResolveError, type ResolvedDeck };
 
-/** Raised when an input can't be resolved (empty query, no matches, …). */
-export class ResolveError extends Error {}
-
-/**
- * Resolve a mode + input into a deck of renderable cards.
- *
- * Mock behavior (Phase 1): any non-empty input yields the full mock catalog.
- * The title is derived from the input so the generated layout feels specific.
- * Replace each branch with live resolution in #14 (scry) / #17 (boost).
- */
+/** Resolve a mode + input into a deck of renderable cards. */
 export async function resolveDeck(mode: Mode, input: string): Promise<ResolvedDeck> {
-  const trimmed = input.trim();
-  if (mode !== "custom" && !trimmed) {
-    throw new ResolveError(
-      mode === "scry" ? "Enter a Scryfall search query." : "Enter a set code.",
-    );
-  }
-
   switch (mode) {
     case "scry":
-      // #14 replaces this with a browser-side Scryfall search.
-      return { cards: mockDeck(), title: `Clock Spinning — ${trimmed}` };
+      return searchDeck(input);
     case "boost":
-      // #17 replaces this with a faithful booster roll for the set code.
-      return {
-        cards: mockDeck(),
-        title: `Booster — ${trimmed.toUpperCase()}`,
-      };
+      return rollBooster(input);
     case "custom":
       // Custom (paired images) is intentionally not wired yet — "coming soon".
       throw new ResolveError("Custom mode is coming soon.");
   }
-}
-
-/** A defensive copy of the mock catalog so callers can't mutate the source. */
-function mockDeck(): Card[] {
-  return MOCK_CARDS.map((c) => ({ ...c }));
 }

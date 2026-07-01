@@ -9,25 +9,7 @@ import Builder from "../components/Builder.tsx";
   <SiteHeader />
 
   <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 tablet:px-6 desktop:px-8">
-    <section class="max-w-2xl">
-      <h1 class="font-serif text-[26px] font-semibold text-ink desktop:text-[40px]">
-        The website is the broadcast surface.
-      </h1>
-      <p class="mt-4 font-sans text-[16px] leading-relaxed text-ink-soft">
-        Pick cards from a Scryfall search or roll a booster pack, then full-screen
-        the site and arrow-key through broadcast-ready slides — live HTML on a
-        16:9 stage. No files, no OBS compositing.
-      </p>
-    </section>
-
-    <div class="mt-8">
-      <Builder client:load />
-    </div>
-
-    <p class="mt-6 font-sans text-[14px] text-ink-muted">
-      Just exploring? <a href="/present">Open the demo reel</a> — a mock set of
-      cards on the broadcast stage you can arrow-key through.
-    </p>
+    <Builder client:load />
   </main>
 
   <SiteFooter />

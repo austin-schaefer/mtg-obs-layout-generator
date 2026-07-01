@@ -3,9 +3,9 @@
  * pick a mode, give it an input, generate a deck, then preview it on the
  * broadcast stage and hand off to the presenter.
  *
- * This is the *shell*. Card resolution goes through `resolveDeck` (the seam to
- * Scryfall #14 / booster #17 — mock-backed for now), and the edit-controls panel
- * is a structural placeholder the layout editor (#15) fills in with behavior.
+ * Card resolution goes through `resolveDeck` — a live Scryfall search (#14) or a
+ * booster roll (#17) — and the edit-controls panel is a structural placeholder
+ * the layout editor (#15) fills in with behavior.
  * What's live today: mode selection, per-mode inputs, generate, the results
  * strip, the stage preview with slide stepping, and the permalink handoff.
  *
@@ -24,11 +24,20 @@ import {
 } from "../lib/recipe.ts";
 import { resolveCards } from "../lib/mock-cards.ts";
 import { resolveDeck, ResolveError } from "../lib/resolve.ts";
+import type { Card } from "../lib/recipe.ts";
 import { encodeRecipe } from "../lib/permalink.ts";
 import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
 
 const DEFAULT_GRID = "4x0";
+
+/**
+ * Default Scryfall query the search field starts with: the oldest paper printing
+ * of each card, in release order, excluding digital-only, un-set, and Universes
+ * Beyond cards. Hosts append their own criteria after it.
+ */
+const DEFAULT_SCRY_QUERY =
+  "prefer:oldest order:released dir:asc -is:digital -is:funny -is:universesbeyond ";
 
 interface ModeDef {
   id: Mode;
@@ -64,11 +73,15 @@ export default function Builder() {
   const [mode, setMode] = useState<Mode>("scry");
   // Keep a separate input per mode so switching modes doesn't clobber a query.
   const [inputs, setInputs] = useState<Record<Mode, string>>({
-    scry: "",
+    scry: DEFAULT_SCRY_QUERY,
     boost: "",
     custom: "",
   });
   const [recipe, setRecipe] = useState<LayoutRecipe | null>(null);
+  // The cards just resolved for `recipe`, keyed back into render via their
+  // identities. The live modes (Scryfall/booster) carry real image URLs here, so
+  // the preview renders the actual artwork rather than re-resolving from a catalog.
+  const [catalog, setCatalog] = useState<Card[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +89,10 @@ export default function Builder() {
 
   const activeMode = MODES.find((m) => m.id === mode)!;
 
-  const cards = useMemo(() => (recipe ? resolveCards(recipe) : []), [recipe]);
+  const cards = useMemo(
+    () => (recipe ? resolveCards(recipe, catalog) : []),
+    [recipe, catalog],
+  );
   const slides = useMemo(
     () => (recipe ? recipeToSlides(recipe, cards) : []),
     [recipe, cards],
@@ -90,13 +106,14 @@ export default function Builder() {
     setError(null);
     setPending(true);
     try {
-      const { cards: resolved, title } = await resolveDeck(mode, inputs[mode]);
+      const { cards: resolved, title, grid } = await resolveDeck(mode, inputs[mode]);
+      setCatalog(resolved);
       setRecipe({
         v: SCHEMA_VERSION,
         mode,
         title,
         cards: resolved.map(({ set, collector }) => ({ set, collector })),
-        grid: DEFAULT_GRID,
+        grid: grid ?? DEFAULT_GRID,
       });
       setSlideIndex(0);
     } catch (err) {
@@ -229,7 +246,7 @@ export default function Builder() {
       </section>
 
       {/* ── Results: preview + cards + edit shell ───────────────────────── */}
-      {recipe ? (
+      {recipe && (
         <div class="mt-6 grid grid-cols-1 gap-6 desktop:grid-cols-[1fr_320px]">
           {/* Preview + handoff */}
           <section aria-label="Layout preview">
@@ -379,10 +396,6 @@ export default function Builder() {
             </fieldset>
           </aside>
         </div>
-      ) : (
-        <p class="mt-6 rounded-lg border border-dashed border-rule bg-paper/40 p-6 text-center text-[15px] text-ink-muted">
-          Pick a source above and generate a layout to preview it here.
-        </p>
       )}
     </div>
   );
