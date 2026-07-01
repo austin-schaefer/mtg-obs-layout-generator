@@ -6,6 +6,8 @@
  *
  * Keys:  ← / → (also ↑ ↓, Space, PageUp/Down) step · F fullscreen · L copy link ·
  *        Esc steps back out (exit fullscreen → `onExit`).
+ * Touch/click: tap the right 70% of the stage to advance, the left 30% to go back —
+ *        so the show is driveable on a phone with no keyboard.
  *
  * `onExit` is set when the presenter runs as an in-app overlay (the builder's
  * "Present" button): Esc with nothing left to close, or the exit button, hands
@@ -144,6 +146,19 @@ export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Prop
         <Stage slide={slides[index]} />
       </StageFrame>
 
+      {/* Tap navigation — right 70% steps forward, left 30% steps back. Full-bleed
+          so the letterbox counts too; it sits above the stage but below the chrome
+          buttons (rendered after this), which keep their own taps. Drives the show
+          on a phone with no keyboard, and doubles as click-to-advance on desktop. */}
+      <div
+        onClick={(e) => {
+          const { left, width } = e.currentTarget.getBoundingClientRect();
+          step(e.clientX - left < width * 0.3 ? -1 : 1);
+          setHintDismissed(true);
+        }}
+        style={{ position: "absolute", inset: "0" }}
+      />
+
       {/* Overlay chrome — hidden in fullscreen so only the clean stage shows. */}
       {!isFullscreen && (
         <>
@@ -172,7 +187,7 @@ export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Prop
             textShadow: "0 1px 4px rgba(0,0,0,0.8)",
           }}
         >
-          ← → step · F fullscreen · L copy link
+          tap or ← → step · F fullscreen · L copy link
           {onExit ? " · Esc exit" : ""}
         </div>
       )}
