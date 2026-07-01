@@ -330,7 +330,7 @@ export default function DeckEditor({
           </button>
           <button
             type="button"
-            onClick={() => addSlide({ kind: "grid", arrangement: "4x0" })}
+            onClick={() => addSlide({ kind: "grid", arrangement: "" })}
             class="rounded-md border border-rule-strong bg-paper px-2.5 py-1 text-[13px] font-semibold text-ink-soft transition-colors hover:border-gold"
           >
             + Grid

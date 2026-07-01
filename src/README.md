@@ -37,7 +37,8 @@ components/
                       (keynote / text / card / grid). Drag-reorder (insertion-line
                       drop indicator + ▲▼ fallback), duplicate, remove, select
                       (drives the preview); edit text in place, pick a card's face
-                      (card / art / both), set a grid's WxH. A sticky bottom bar
+                      (card / art / both), set a grid's WxH (blank = a
+                      card-count-aware default, `autoColumns`). A sticky bottom bar
                       adds a Card / Text / Keynote / Grid after the selected slide
                       (pinned so a long deck needs no scroll) — writes recipe live.
                       Adding a card is two-step when it has several printings:

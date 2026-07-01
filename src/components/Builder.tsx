@@ -34,7 +34,10 @@ import Stage from "./stage/Stage.tsx";
 import DeckEditor from "./DeckEditor.tsx";
 import Presenter from "./Presenter.tsx";
 
-const DEFAULT_GRID = "4x0";
+// A fresh grid seeds blank — "auto" — so its arrangement stays a card-count-aware
+// default (`autoColumns`) that re-balances as cards are added/removed (issue #34).
+// Booster mode overrides this with its own per-pack layout.
+const DEFAULT_GRID = "";
 
 /**
  * Default Scryfall query the search field starts with: the oldest paper printing

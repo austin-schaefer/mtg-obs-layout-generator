@@ -61,6 +61,27 @@ Two rectangles cut to transparency so an underlying OBS source shows through:
   (`-gravity center`) onto the title background.
 - Grid arrangement format `WxH`, `0` = auto (e.g. `8x0`, `9x0`, `4x4`).
 
+#### Auto arrangement — the sensible default (issue #34)
+
+A fresh grid slide seeds **blank** (`""` = auto), so its shape is chosen from the
+live card count and re-balances as cards are added/removed. Typing an explicit
+`WxH` overrides it. The chooser is `autoColumns(n)` in `GridOverview.tsx`.
+
+Cards are portrait (~0.72 w/h) but the box is landscape (2500×1400), so the
+column count that best fills the box is `√(N · 2500 / (1400 · 0.72))` ≈ `1.575·√N`
+— **more** columns than a plain `√N`. Round to that, then step off any count that
+would strand a lone card on the last row (e.g. 13 → 6 cols reads 6/6/1; 5 cols
+reads the nicer 5/5/3). 1–4 cards render as a single row.
+
+| cards | cols | rows | cards | cols | rows |
+|--:|:--|:--|--:|:--|:--|
+| 1–4 | N | single row | 14–17 | 6 | 3 |
+| 5 | 3 | 3/2 | 18–21 | 7 | 3 |
+| 6–8 | 4 | 2 | 22–24 | 8 | 3 |
+| 9–10 | 5 | 2 | 25 | 7 | 4 |
+| 11 | 6 | 2 | 26–29 | 8 | 4 |
+| 12–13 | 5 | 3 | 30 | 9 | 4 |
+
 ### Keynote & text slides
 
 Two broadcast title cards share the framed base `title_background_w_frame.png` —
