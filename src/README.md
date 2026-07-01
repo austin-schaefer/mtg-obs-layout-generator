@@ -31,13 +31,18 @@ components/
                       navigation, so editing work is never lost; Esc returns).
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
+                      A generated deck is bookended by the branded keynote card:
+                      keynote → title → cards → grid → keynote.
   DeckEditor.tsx      The one list that is the show (#26): a row per slide
                       (keynote / text / card / grid). Drag-reorder (insertion-line
                       drop indicator + ▲▼ fallback), duplicate, remove, select
                       (drives the preview); edit text in place, pick a card's face
                       (card / art / both), set a grid's WxH; add a Keynote, a Text
                       slide, a Grid, or a searched Card after the selected slide —
-                      writes recipe live.
+                      writes recipe live. Adding a card is two-step when it has
+                      several printings: search a name, then pick the exact printing
+                      (art thumbnail + set + collector #) that lands on the slide
+                      (#31); a single-printing card adds in one step.
   Presenter.tsx       Show surface: keyboard nav (← → step · F fullscreen ·
                       L copy permalink), counter. Steps the whole deck (grid slides
                       included — no separate grid mode). Esc steps back out
@@ -69,10 +74,11 @@ lib/
   mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
   resolve.ts          resolveDeck(mode, input) — the builder's card-resolution seam;
                       dispatches scry → Scryfall search (#14), boost → booster roll
-                      (#17). Owns the generate-time Mode; re-exports searchCards for
-                      the deck editor's add-a-card search
+                      (#17). Owns the generate-time Mode; re-exports searchCards +
+                      searchPrintings for the deck editor's add-a-card search
   scryfall.ts         Browser-side Scryfall client (no key): rate-limited search,
-                      searchCards (add-a-card picker), booster-rarity queries, and
+                      searchCards (add-a-card picker) + searchPrintings (a chosen
+                      card's printings, #31), booster-rarity queries, and
                       /cards/collection identity resolve
   booster.ts          Faithful TS port of booster_builder.py — set/odds tables +
                       rollBooster() drawing real cards, frozen to concrete identities

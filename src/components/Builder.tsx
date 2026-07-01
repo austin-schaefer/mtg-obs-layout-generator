@@ -125,6 +125,9 @@ export default function Builder() {
       setRecipe({
         v: SCHEMA_VERSION,
         slides: [
+          // A fresh deck is bookended by the branded keynote card: keynote open,
+          // a title slide, the cards, a grid montage, then a keynote close.
+          { kind: "keynote" },
           { kind: "title", text: title },
           ...resolved.map((c) => ({
             kind: "card" as const,
@@ -133,6 +136,7 @@ export default function Builder() {
             face: FACE_BOTH,
           })),
           { kind: "grid", arrangement: grid ?? DEFAULT_GRID },
+          { kind: "keynote" },
         ],
       });
       setSlideIndex(0);

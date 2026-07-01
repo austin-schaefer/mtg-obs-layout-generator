@@ -34,7 +34,7 @@ import {
   type Card,
   type LayoutRecipe,
 } from "../lib/recipe.ts";
-import { searchCards } from "../lib/resolve.ts";
+import { searchCards, searchPrintings, type CardOption } from "../lib/resolve.ts";
 
 const FACES: { code: number; label: string; title: string }[] = [
   { code: FACE_BOTH, label: "Both", title: "Show the full card and its art" },
@@ -74,9 +74,18 @@ export default function DeckEditor({
   // Inline add-a-card search.
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Card[]>([]);
+  const [results, setResults] = useState<CardOption[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Printing picker (#31): once a host picks a card *name* from the results, we
+  // fetch its printings so they can choose the exact art/frame that lands on the
+  // slide. `printingFor` is the chosen name (also drives the sub-view + loading
+  // label); `printings` are its fetched options. A card with a single printing
+  // skips this step entirely (added straight from the results).
+  const [printingFor, setPrintingFor] = useState<CardOption | null>(null);
+  const [printings, setPrintings] = useState<CardOption[]>([]);
+  const [loadingPrintings, setLoadingPrintings] = useState(false);
 
   const commitDrop = () => {
     if (dragFrom !== null && dropAt !== null) {
@@ -111,11 +120,18 @@ export default function DeckEditor({
     onSelect(insertAt);
   };
 
+  const backToResults = () => {
+    setPrintingFor(null);
+    setPrintings([]);
+    setLoadingPrintings(false);
+  };
+
   const runSearch = async () => {
     const q = query.trim();
     if (!q) return;
     setSearching(true);
     setSearchError(null);
+    backToResults();
     try {
       const found = await searchCards(q);
       setResults(found);
@@ -133,7 +149,33 @@ export default function DeckEditor({
     setQuery("");
     setResults([]);
     setSearchError(null);
+    backToResults();
   };
+
+  // A host clicked a card name in the results: fetch its printings. One printing
+  // adds in a single step (no picker); several open the printing sub-view. A
+  // fetch failure falls back to adding the card we already have.
+  const chooseCard = async (card: CardOption) => {
+    setPrintingFor(card);
+    setPrintings([]);
+    setLoadingPrintings(true);
+    try {
+      const found = await searchPrintings(card);
+      if (found.length <= 1) {
+        pickCard(found[0] ?? card);
+        return;
+      }
+      setPrintings(found);
+    } catch {
+      pickCard(card);
+    } finally {
+      setLoadingPrintings(false);
+    }
+  };
+
+  // Distinguish a printing at a glance: set name (or code) + collector number.
+  const printingLabel = (c: CardOption) =>
+    `${c.setName ?? c.set.toUpperCase()} · #${c.collector}`;
 
   return (
     <div class="flex flex-col gap-4">
@@ -277,7 +319,12 @@ export default function DeckEditor({
           </button>
           <button
             type="button"
-            onClick={() => setAdding((a) => !a)}
+            onClick={() =>
+              setAdding((a) => {
+                if (a) backToResults();
+                return !a;
+              })
+            }
             aria-expanded={adding}
             class={[
               "rounded-md border px-2.5 py-1 text-[13px] font-semibold transition-colors",
@@ -292,58 +339,107 @@ export default function DeckEditor({
 
         {adding && (
           <div class="rounded-md border border-rule bg-paper/70 p-2.5">
-            <form
-              class="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!searching) runSearch();
-              }}
-            >
-              <input
-                type="text"
-                value={query}
-                placeholder="Search Scryfall, e.g. lightning bolt"
-                onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
-                class="min-w-0 flex-1 rounded-md border border-rule-strong bg-paper px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
-                aria-label="Search cards to add"
-              />
-              <button
-                type="submit"
-                disabled={searching || !query.trim()}
-                class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[13px] font-semibold text-maroon transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {searching ? "…" : "Search"}
-              </button>
-            </form>
+            {printingFor ? (
+              /* Printing picker (#31): choose which printing lands on the slide. */
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <p class="min-w-0 truncate text-[12px] text-ink-soft">
+                    {loadingPrintings
+                      ? `Loading printings of ${printingFor.name}…`
+                      : `Choose a printing of ${printingFor.name}`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={backToResults}
+                    class="shrink-0 rounded border border-rule px-2 py-0.5 text-[12px] font-semibold text-ink-soft transition-colors hover:border-gold hover:text-maroon"
+                  >
+                    ← Back
+                  </button>
+                </div>
 
-            {searchError && (
-              <p class="mt-2 text-[12px] text-maroon" role="alert">
-                {searchError}
-              </p>
-            )}
-
-            {results.length > 0 && (
+                {!loadingPrintings && (
+                  <ul class="mt-1.5 flex flex-wrap gap-1.5">
+                    {printings.map((p) => (
+                      <li key={cardKey(p)}>
+                        <button
+                          type="button"
+                          onClick={() => pickCard(p)}
+                          title={`Add ${p.name} — ${printingLabel(p)}`}
+                          class="flex w-[76px] flex-col overflow-hidden rounded border border-rule bg-paper text-left transition-colors hover:border-gold focus:border-gold focus:outline-none"
+                        >
+                          <img
+                            src={p.cardImage}
+                            alt={`${p.name} — ${printingLabel(p)}`}
+                            loading="lazy"
+                            class="w-full"
+                          />
+                          <span class="truncate px-1 py-0.5 text-[10px] leading-tight text-ink-muted">
+                            {printingLabel(p)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
               <>
-                <p class="mt-2 text-[12px] text-ink-muted">Click a card to add it.</p>
-                <ul class="mt-1.5 flex flex-wrap gap-1.5">
-                  {results.map((card) => (
-                    <li key={cardKey(card)}>
-                      <button
-                        type="button"
-                        onClick={() => pickCard(card)}
-                        title={`Add ${card.name}`}
-                        class="block overflow-hidden rounded border border-rule bg-paper transition-colors hover:border-gold focus:border-gold focus:outline-none"
-                      >
-                        <img
-                          src={card.cardImage}
-                          alt={card.name}
-                          loading="lazy"
-                          class="h-24 w-auto"
-                        />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <form
+                  class="flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!searching) runSearch();
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={query}
+                    placeholder="Search Scryfall, e.g. lightning bolt"
+                    onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+                    class="min-w-0 flex-1 rounded-md border border-rule-strong bg-paper px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
+                    aria-label="Search cards to add"
+                  />
+                  <button
+                    type="submit"
+                    disabled={searching || !query.trim()}
+                    class="rounded-md border border-rule-strong bg-paper px-3 py-1.5 text-[13px] font-semibold text-maroon transition-colors hover:border-gold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {searching ? "…" : "Search"}
+                  </button>
+                </form>
+
+                {searchError && (
+                  <p class="mt-2 text-[12px] text-maroon" role="alert">
+                    {searchError}
+                  </p>
+                )}
+
+                {results.length > 0 && (
+                  <>
+                    <p class="mt-2 text-[12px] text-ink-muted">
+                      Click a card to choose its printing.
+                    </p>
+                    <ul class="mt-1.5 flex flex-wrap gap-1.5">
+                      {results.map((card) => (
+                        <li key={cardKey(card)}>
+                          <button
+                            type="button"
+                            onClick={() => chooseCard(card)}
+                            title={`Choose a printing of ${card.name}`}
+                            class="block overflow-hidden rounded border border-rule bg-paper transition-colors hover:border-gold focus:border-gold focus:outline-none"
+                          >
+                            <img
+                              src={card.cardImage}
+                              alt={card.name}
+                              loading="lazy"
+                              class="h-24 w-auto"
+                            />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </>
             )}
           </div>
