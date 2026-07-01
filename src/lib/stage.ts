@@ -90,3 +90,28 @@ export function useStageScale() {
 
   return { ref, scale };
 }
+
+/**
+ * Warm the browser image cache for every URL up front, so slides don't visibly
+ * load mid-presentation (only the on-screen slide's <img> is ever in the DOM, so
+ * without this each card/art fetches the first time you land on it). Client-only
+ * (effect); data-URI placeholders are no-ops. Keyed on the joined URL list so it
+ * re-runs only when the actual deck changes, not on every render.
+ */
+export function usePreloadImages(urls: string[]) {
+  const key = urls.join("|");
+  useEffect(() => {
+    const imgs = urls.map((src) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+    return () => {
+      // Drop refs so an abandoned deck's fetches can be GC'd.
+      imgs.forEach((img) => {
+        img.src = "";
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+}

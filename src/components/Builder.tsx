@@ -27,6 +27,7 @@ import { resolveCards } from "../lib/mock-cards.ts";
 import { resolveDeck, ResolveError } from "../lib/resolve.ts";
 import type { Card } from "../lib/recipe.ts";
 import { encodeRecipe } from "../lib/permalink.ts";
+import { usePreloadImages } from "../lib/stage.ts";
 import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
 import GridOverview from "./stage/GridOverview.tsx";
@@ -116,6 +117,10 @@ export default function Builder() {
     [recipe, cards],
   );
   const gridCards = useMemo(() => thumbs.map((t) => t.card), [thumbs]);
+
+  // Warm the cache for the whole resolved deck as soon as it's generated, so the
+  // preview steps instantly and Present starts with every image already loaded.
+  usePreloadImages(cards.flatMap((c) => [c.cardImage, c.artImage]));
 
   const generate = useCallback(async () => {
     setError(null);

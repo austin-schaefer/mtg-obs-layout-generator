@@ -21,6 +21,7 @@ import {
   type LayoutRecipe,
 } from "../lib/recipe.ts";
 import { encodeRecipe } from "../lib/permalink.ts";
+import { usePreloadImages } from "../lib/stage.ts";
 import StageFrame from "./stage/StageFrame.tsx";
 import Stage from "./stage/Stage.tsx";
 import GridOverview from "./stage/GridOverview.tsx";
@@ -39,6 +40,9 @@ const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp", "Backspace"]);
 export default function Presenter({ recipe, cards, onExit }: Props) {
   const slides = recipeToSlides(recipe, cards);
   const gridCards = visibleCards(recipe, cards);
+
+  // Preload the whole deck (both faces) so no slide loads mid-presentation.
+  usePreloadImages(cards.flatMap((c) => [c.cardImage, c.artImage]));
 
   const rootRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);

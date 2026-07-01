@@ -48,7 +48,9 @@ lib/
                       recipeToSlides() / visibleCards() / visibleIndices() derive
                       what's shown; moveCard / toggleExcluded / setFace / setGrid are
                       the editor's pure recipe→recipe edits
-  stage.ts            2560×1440 coordinate system + regions + useStageScale() hook
+  stage.ts            2560×1440 coordinate system + regions + useStageScale() +
+                      usePreloadImages() (warms the deck's images so slides don't
+                      load mid-presentation)
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)
   mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
