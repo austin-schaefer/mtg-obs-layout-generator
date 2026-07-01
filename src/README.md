@@ -49,7 +49,9 @@ components/
                       set + collector #) that lands on the slide (#31); a
                       single-printing card adds in one step.
   Presenter.tsx       Show surface: keyboard nav (← → step · F fullscreen ·
-                      L copy permalink), counter. Steps the whole deck (grid slides
+                      L copy permalink), counter. Tap/click also steps — right 70%
+                      forward, left 30% back — so a phone with no keyboard can
+                      drive the show. Steps the whole deck (grid slides
                       included — no separate grid mode). Opens on `startIndex` (the
                       builder hands off the selected slide; /present opens at 0). Esc
                       steps back out (fullscreen → onExit); onExit set only for the
