@@ -162,7 +162,9 @@ async function drawTimeshifted(count: number) {
  * The cards are concrete identities, so a permalink freezes this exact pack.
  */
 export async function rollBooster(setCode: string): Promise<ResolvedDeck> {
-  const code = setCode.trim();
+  // Be forgiving: the field wants a bare set code, but hosts naturally type a
+  // Scryfall-ish `e:chk` / `e=chk` / `set:chk`. Strip that leading qualifier.
+  const code = setCode.trim().replace(/^(set|e)\s*[:=]\s*/i, "");
   if (!code) throw new ResolveError("Enter a set code.");
 
   const config = boosterConfig(code);

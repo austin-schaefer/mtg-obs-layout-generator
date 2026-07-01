@@ -24,7 +24,7 @@ components/
                       generate, results strip, stage preview, presenter handoff,
                       edit-controls shell (behavior fills in with the editor, #15)
   Presenter.tsx       Show surface: keyboard nav (← → · G grid · F fullscreen ·
-                      L copy permalink), counter
+                      Esc close grid / exit fullscreen · L copy permalink), counter
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
                       decodes the recipe and re-hydrates its card identities into
                       real artwork via Scryfall (loading / error states)
