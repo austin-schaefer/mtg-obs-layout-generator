@@ -60,7 +60,8 @@ components/
                       canvas layers. Keynote = the framed Clock Spinning brand
                       background (wordmark + host chrome), no text; text = arbitrary
                       text on the host-frame background (no wordmark), auto-fit and
-                      centered above the host boxes in Montserrat / orchid (#25)
+                      centered on the two host frames' midpoint (they sit right of
+                      canvas-center) in Montserrat / orchid (#25)
     GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
