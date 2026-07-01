@@ -32,11 +32,12 @@ components/
                       The Scryfall field defaults to a filter prefix (oldest paper
                       printing, release order, minus digital/un/Universes Beyond).
   DeckEditor.tsx      The one list that is the show (#26): a row per slide
-                      (title / card / grid). Drag-reorder (insertion-line drop
-                      indicator + ▲▼ fallback), duplicate, remove, select (drives
-                      the preview); edit title text in place, pick a card's face
-                      (card / art / both), set a grid's WxH; add a Title, a Grid, or
-                      a searched Card after the selected slide — writes recipe live.
+                      (keynote / text / card / grid). Drag-reorder (insertion-line
+                      drop indicator + ▲▼ fallback), duplicate, remove, select
+                      (drives the preview); edit text in place, pick a card's face
+                      (card / art / both), set a grid's WxH; add a Keynote, a Text
+                      slide, a Grid, or a searched Card after the selected slide —
+                      writes recipe live.
   Presenter.tsx       Show surface: keyboard nav (← → step · F fullscreen ·
                       L copy permalink), counter. Steps the whole deck (grid slides
                       included — no separate grid mode). Esc steps back out
@@ -47,7 +48,11 @@ components/
                       real artwork via Scryfall (loading / error states)
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
-    Stage.tsx         Renders one slide (title / card+art / grid) as canvas layers
+    Stage.tsx         Renders one slide (keynote / text / card+art / grid) as
+                      canvas layers. Keynote = the framed Clock Spinning brand
+                      background (wordmark + host chrome), no text; text = arbitrary
+                      text on the host-frame background (no wordmark), auto-fit and
+                      centered above the host boxes in Montserrat / orchid (#25)
     GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
@@ -56,6 +61,7 @@ lib/
                       setTitleText / setSlideFace / setGridArrangement are the
                       editor's pure recipe→recipe edits (addressed by deck position)
   stage.ts            2560×1440 coordinate system + regions + useStageScale() +
+                      useFitFontSize() (auto-fits the keynote title into its band) +
                       usePreloadImages() (warms the deck's images so slides don't
                       load mid-presentation)
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
@@ -74,7 +80,8 @@ pages/
   index.astro         Landing intro + the builder (creation surface)
   present.astro       Full-viewport presenter (the screen-share surface)
 styles/
-  global.css          @import "tailwindcss" + @fontsource fonts + @theme tokens
+  global.css          @import "tailwindcss" + @fontsource fonts (incl. the Clock
+                      Spinning brand faces Zen Tokyo Zoo + Montserrat) + @theme tokens
 ```
 
 `public/` (repo root) holds static passthrough assets like `favicon.svg`.
@@ -83,7 +90,7 @@ styles/
 
 `lib/recipe.ts` is the single shared shape the builder, the permalink, and the
 stage renderer all speak. A `LayoutRecipe` is a **deck**: an ordered list of typed
-slides (title / card / grid). Generate seeds it once; after that the deck *is* the
+slides (keynote / text / card / grid). Generate seeds it once; after that the deck *is* the
 document, and every edit reorders / edits / adds / removes / duplicates entries in
 that one list. Card slides carry resolved *identities* (`set` + `collector`), never
 image URLs — those are reconstructed at render time (`buildSlides` + `cardMapFrom`).

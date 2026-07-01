@@ -13,7 +13,7 @@
  * No transparency holes, no PNG export: the live surface model (epic #19).
  */
 
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
 /** The OBS composite canvas — every `resources/*.png` background is this size. */
 export const STAGE_WIDTH = 2560;
@@ -89,6 +89,54 @@ export function useStageScale() {
   }, []);
 
   return { ref, scale };
+}
+
+/**
+ * Pick the largest font-size (in true canvas px) at which `text` fits inside a
+ * `w×h` box, wrapping allowed. Used by the title keynote so any episode title —
+ * short or long — settles into the open band between the wordmark and the host
+ * boxes without overflowing into either. Binary-searches the measured element,
+ * so it's exact for the font actually loaded (re-runs when the text or box
+ * changes, and once more when the web font finishes loading).
+ */
+export function useFitFontSize(
+  text: string,
+  box: { w: number; h: number },
+  max: number,
+  min: number,
+) {
+  const ref = useRef<HTMLElement>(null);
+  const [size, setSize] = useState(max);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      let lo = min;
+      let hi = max;
+      let best = min;
+      for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        el.style.fontSize = `${mid}px`;
+        if (el.scrollWidth <= box.w && el.scrollHeight <= box.h) {
+          best = mid;
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      el.style.fontSize = `${best}px`;
+      setSize(best);
+    };
+    fit();
+    // Web fonts (Zen Tokyo Zoo) load async; remeasure once they're ready so the
+    // fit reflects the real glyph metrics, not the fallback's.
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } })
+      .fonts;
+    fonts?.ready?.then(fit);
+  }, [text, box.w, box.h, max, min]);
+
+  return { ref, size };
 }
 
 /**

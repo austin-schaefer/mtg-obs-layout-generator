@@ -7,8 +7,10 @@
  * permalink encodes (`permalink.ts`) and the renderer consumes (`buildSlides`), so
  * the builder, the URL, and the stage all speak one language.
  *
- * Three slide types:
- *   - **title** — editable text; any number, anywhere.
+ * Slide types:
+ *   - **keynote** — the branded show title card (the Clock Spinning wordmark +
+ *     host-frame chrome); no text of its own.
+ *   - **title** — a text card: arbitrary text on the same broadcast surface.
  *   - **card**  — a resolved card identity (`set`/`collector`) + a face.
  *   - **grid**  — an auto-montage of *all* card slides in the deck (kept in sync).
  *
@@ -44,6 +46,7 @@ export const FACE_BOTH = 2;
  * one slide shows both at once). `grid` arrangement is `WxH`, `0` = auto.
  */
 export type SlideSpec =
+  | { kind: "keynote" }
   | { kind: "title"; text: string }
   | { kind: "card"; set: string; collector: string; face: number }
   | { kind: "grid"; arrangement: string };
@@ -91,6 +94,7 @@ export function placeholderCard(ref: CardRef): Card {
  * card, its art, or both; a `grid` slide carries the montaged cards.
  */
 export type Slide =
+  | { kind: "keynote" }
   | { kind: "title"; title: string }
   | { kind: "card"; card: Card; showCard: boolean; showArt: boolean }
   | { kind: "grid"; cards: Card[]; arrangement: string };
@@ -133,6 +137,7 @@ export function buildSlides(
   const gridCards = cardRefs(recipe).map(lookup);
 
   return recipe.slides.map((s): Slide => {
+    if (s.kind === "keynote") return { kind: "keynote" };
     if (s.kind === "title") return { kind: "title", title: s.text };
     if (s.kind === "grid") {
       return { kind: "grid", cards: gridCards, arrangement: s.arrangement };

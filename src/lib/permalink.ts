@@ -36,19 +36,22 @@ const { compressToEncodedURIComponent, decompressFromEncodedURIComponent } =
 const T_TITLE = 0;
 const T_CARD = 1;
 const T_GRID = 2;
+const T_KEYNOTE = 3;
 
 /**
  * Compact slide forms, tagged by type:
- *   - title: `[0, text]`
- *   - card:  `[1, setIdx, collector]` (face BOTH — the default, omitted) or
- *            `[1, setIdx, collector, face]` when the face isn't BOTH
- *   - grid:  `[2, arrangement]`
+ *   - title:   `[0, text]`
+ *   - card:    `[1, setIdx, collector]` (face BOTH — the default, omitted) or
+ *              `[1, setIdx, collector, face]` when the face isn't BOTH
+ *   - grid:    `[2, arrangement]`
+ *   - keynote: `[3]` (no payload — the branded show title card)
  */
 type CompactSlide =
   | [typeof T_TITLE, string]
   | [typeof T_CARD, number, string]
   | [typeof T_CARD, number, string, number]
-  | [typeof T_GRID, string];
+  | [typeof T_GRID, string]
+  | [typeof T_KEYNOTE];
 
 /** Compact positional form: `[v, sets, slides]`, `sets` the set-code dictionary. */
 type Compact = [number, string[], CompactSlide[]];
@@ -65,6 +68,7 @@ function toCompact(recipe: LayoutRecipe): Compact {
   };
 
   const slides = recipe.slides.map((s): CompactSlide => {
+    if (s.kind === "keynote") return [T_KEYNOTE];
     if (s.kind === "title") return [T_TITLE, s.text];
     if (s.kind === "grid") return [T_GRID, s.arrangement];
     const idx = setIndex(s.set);
@@ -82,6 +86,8 @@ function fromCompact(c: Compact): LayoutRecipe {
     v,
     slides: slides.map((s): SlideSpec => {
       switch (s[0]) {
+        case T_KEYNOTE:
+          return { kind: "keynote" };
         case T_TITLE:
           return { kind: "title", text: s[1] };
         case T_GRID:

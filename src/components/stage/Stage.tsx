@@ -22,13 +22,15 @@ import {
   VERTICAL_MAX,
   HOST_BOXES,
   boxStyle,
+  useFitFontSize,
   type Box,
 } from "../../lib/stage.ts";
 import GridOverview from "./GridOverview.tsx";
 
 import marble from "../../../resources/marble-background.png";
 import frame from "../../../resources/host-frames-card-discussion.png";
-import titleBg from "../../../resources/title_background.png";
+import titleFrameBg from "../../../resources/title_background_w_frame.png";
+import titleHostsBg from "../../../resources/title_background_w_hosts.png";
 
 const fullStage: Record<string, string> = {
   position: "absolute",
@@ -82,61 +84,77 @@ function RegionImage(props: {
   );
 }
 
+/**
+ * The open region on the host-frame title background — the clear area where the
+ * wordmark would be, above the two host-cam boxes and right of the hourglass on
+ * the left. The text slide centers its text here. Measured against
+ * `title_background_w_hosts.png` (2560×1440; host boxes start ~y858).
+ */
+const TEXT_REGION: Box = { x: 820, y: 150, w: 1660, h: 660 };
+
+/**
+ * Keynote — the branded show title card: the fully-framed Clock Spinning
+ * background (wordmark + host-frame chrome), nothing overlaid. This is the
+ * "name of the podcast" slide (issue #25).
+ */
+function KeynoteSlide() {
+  return <img src={titleFrameBg.src} alt="" style={fullStage} />;
+}
+
+/**
+ * Text slide — arbitrary text on the broadcast surface, wearing the host-frame
+ * chrome but *not* the wordmark (`title_background_w_hosts.png`, derived from the
+ * keynote art), so it reads as part of the show without competing with the
+ * wordmark. The text is centered in the open region above the host boxes, set in
+ * the brand body face (Montserrat) in the show's orchid accent, glowing to stay
+ * legible over the busy indigo. Auto-fit so short lines stand large and long ones
+ * shrink to wrap — never overrunning the host boxes below. Empty text leaves the
+ * clean host-frame background.
+ */
 function TitleSlide({ title }: { title: string }) {
+  const text = title.trim();
+  const { ref, size } = useFitFontSize(text, TEXT_REGION, 200, 48);
   return (
     <>
-      <img src={titleBg.src} alt="" style={fullStage} />
-      <div
-        style={{
-          ...fullStage,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0 200px",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Parchment plate keeps the title legible over any background and reads
-            as an intentional broadcast title card (marble + maroon + gold). */}
+      <img src={titleHostsBg.src} alt="" style={fullStage} />
+      {text && (
         <div
           style={{
-            maxWidth: "1960px",
-            padding: "96px 140px",
-            background: "linear-gradient(180deg, #efece3, #dcd7c7)",
-            border: "6px solid #b8893a",
-            borderRadius: "28px",
-            boxShadow: "0 40px 110px rgba(0,0,0,0.55)",
-            textAlign: "center",
+            ...boxStyle(TEXT_REGION),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <div
-            style={{
-              width: "180px",
-              height: "5px",
-              margin: "0 auto 48px",
-              background: "#b8893a",
-              borderRadius: "3px",
-            }}
-          />
           <h1
+            ref={ref}
             style={{
               margin: "0",
-              fontFamily: 'var(--font-serif, "Source Serif 4", Georgia, serif)',
-              fontWeight: "700",
-              fontSize: "150px",
+              maxWidth: "100%",
+              textAlign: "center",
+              fontFamily:
+                'var(--font-brand, "Montserrat", system-ui, sans-serif)',
+              fontWeight: "600",
+              fontSize: `${size}px`,
               lineHeight: "1.08",
-              color: "#7a1f1a",
+              color: "var(--color-cs-orchid, #d19ed5)",
+              textShadow:
+                "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
             }}
           >
-            {title}
+            {text}
           </h1>
         </div>
-      </div>
+      )}
     </>
   );
 }
 
 export default function Stage({ slide }: { slide: Slide }) {
+  if (slide.kind === "keynote") {
+    return <KeynoteSlide />;
+  }
+
   if (slide.kind === "title") {
     return <TitleSlide title={slide.title} />;
   }

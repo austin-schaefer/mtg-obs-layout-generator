@@ -10,6 +10,13 @@
 @import "@fontsource/source-sans-3/600.css";
 @import "@fontsource/source-sans-3/700.css";
 
+/* Clock Spinning broadcast brand fonts (from clockspinning.com): Zen Tokyo Zoo
+   is the striped Art-Deco wordmark display face; Montserrat is the body voice.
+   Used on the broadcast stage (title keynote) — see the obs-layouts-design skill. */
+@import "@fontsource/zen-tokyo-zoo/400.css";
+@import "@fontsource/montserrat/500.css";
+@import "@fontsource/montserrat/600.css";
+
 @theme {
   /* Canonical breakpoints — the obs-layouts-design modes, exactly.
      Clear Tailwind's defaults so the brand's three modes are the ONLY ones
@@ -41,9 +48,23 @@
   --color-link:   #0a3cb0;
   --color-link-visited: #5a2a8a;
 
+  /* Clock Spinning broadcast brand — sampled from clockspinning.com and the
+     framed title backgrounds. The purple/indigo show palette; used on the
+     broadcast stage so slides read as the same surface as the wordmark art. */
+  --color-cs-indigo:      #232a5b;  /* deep indigo — title-background base */
+  --color-cs-indigo-deep: #101228;  /* near-black indigo — shadowed folds */
+  --color-cs-orchid:      #d19ed5;  /* orchid pink — brand accent (hourglass) */
+  --color-cs-cobalt:      #538ef2;  /* cobalt — brand primary / frame edges */
+  --color-cs-steel:       #7a8ea8;  /* steel-lavender — secondary text */
+  --color-cs-ink:         #1a202c;  /* brand ink */
+
   /* Fonts — self-hosted; serif display + sans body */
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-sans:  "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Clock Spinning broadcast brand fonts (stage only, not the site chrome) */
+  --font-display: "Zen Tokyo Zoo", "Source Serif 4", Georgia, serif;
+  --font-brand:   "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Base document defaults — sans body on a marble surface, serif for display.

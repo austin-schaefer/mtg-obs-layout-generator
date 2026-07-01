@@ -92,12 +92,13 @@ export const MOCK_CARDS: Card[] = [
   },
 ];
 
-/** A demo deck: a title slide, every card as a both-faces slide (the default),
- *  then a 4-wide grid montage of them all. */
+/** A demo deck: the branded keynote, a text slide, every card as a both-faces
+ *  slide (the default), then a 4-wide grid montage of them all. */
 export const MOCK_RECIPE: LayoutRecipe = {
   v: SCHEMA_VERSION,
   slides: [
-    { kind: "title", text: "Clock Spinning — Demo Reel" },
+    { kind: "keynote" },
+    { kind: "title", text: "Demo Reel" },
     ...MOCK_CARDS.map(
       ({ set, collector }): SlideSpec => ({
         kind: "card",
