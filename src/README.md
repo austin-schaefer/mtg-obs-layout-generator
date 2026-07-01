@@ -47,7 +47,10 @@ components/
                       real artwork via Scryfall (loading / error states)
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
-    Stage.tsx         Renders one slide (title / card+art / grid) as canvas layers
+    Stage.tsx         Renders one slide (title / card+art / grid) as canvas layers.
+                      The title is a Clock Spinning keynote: the framed brand
+                      background (wordmark + host chrome) with the episode title
+                      auto-fit into the open band in Zen Tokyo Zoo / orchid (#25)
     GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
@@ -56,6 +59,7 @@ lib/
                       setTitleText / setSlideFace / setGridArrangement are the
                       editor's pure recipe→recipe edits (addressed by deck position)
   stage.ts            2560×1440 coordinate system + regions + useStageScale() +
+                      useFitFontSize() (auto-fits the keynote title into its band) +
                       usePreloadImages() (warms the deck's images so slides don't
                       load mid-presentation)
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
@@ -74,7 +78,8 @@ pages/
   index.astro         Landing intro + the builder (creation surface)
   present.astro       Full-viewport presenter (the screen-share surface)
 styles/
-  global.css          @import "tailwindcss" + @fontsource fonts + @theme tokens
+  global.css          @import "tailwindcss" + @fontsource fonts (incl. the Clock
+                      Spinning brand faces Zen Tokyo Zoo + Montserrat) + @theme tokens
 ```
 
 `public/` (repo root) holds static passthrough assets like `favicon.svg`.

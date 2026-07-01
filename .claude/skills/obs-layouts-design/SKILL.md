@@ -30,7 +30,8 @@ changes there, update this table).
 |---|---|
 | `marble-background.png` | Base background for individual card/art slides |
 | `host-frames-card-discussion.png` | Overlay frame applied on top (`+0+0`) |
-| `title_background.png` / `title_background_w_frame.png` | Title-slide backgrounds for the grid montage |
+| `title_background_w_frame.png` | **Title keynote** base — the Clock Spinning wordmark + host-frame chrome baked in |
+| `title_background.png` | Frameless variant — base for the grid montage (cards cover it) |
 
 ### Slide regions & sizing
 
@@ -58,6 +59,24 @@ Two rectangles cut to transparency so an underlying OBS source shows through:
 - Final grid capped at **2500 × 1400** (fit-within), then composited centered
   (`-gravity center`) onto the title background.
 - Grid arrangement format `WxH`, `0` = auto (e.g. `8x0`, `9x0`, `4x4`).
+
+### Title keynote
+
+The **title slide** is a Clock Spinning broadcast title card, not a generic
+centered plate (issue #25). It composites straight onto `title_background_w_frame.png`
+— which already carries the wordmark and the host-frame chrome — so a title reads
+as the *same* surface as the card slides. The wordmark is the show brand; the
+episode title is a subordinate line below it.
+
+- **Title band** (episode title) — the clear gap between the wordmark (above) and
+  the host-cam boxes (below), left of the hourglass: **(810, 660, 1690, 190)** on
+  the 2560×1440 canvas. Auto-fit the title into this box (largest size that wraps
+  without overflowing — see `useFitFontSize` in `lib/stage.ts`); short titles stand
+  large, long ones shrink to two lines. Set it in **Zen Tokyo Zoo** (`--font-display`),
+  orchid (`--color-cs-orchid`), with a soft glow for legibility over the indigo.
+- **No plate, no rounded rects.** The framing is the broadcast chrome, not slideware.
+- The **grid overview** stays on the frameless `title_background.png` (the montage
+  covers ~97% of the canvas), so title + grid read as one coherent purple family.
 
 ### Hero image (optional)
 
@@ -102,11 +121,33 @@ Refine the palette against real mocks; keep it cohesive with the broadcast look.
   --color-link:   #0a3cb0;
   --color-link-visited: #5a2a8a;
 
+  /* Clock Spinning broadcast brand — sampled from clockspinning.com and the framed
+     title art. The purple/indigo show palette; used on the broadcast stage so
+     slides read as the same surface as the wordmark. */
+  --color-cs-indigo:      #232a5b;  /* deep indigo — title-background base */
+  --color-cs-indigo-deep: #101228;  /* near-black indigo — shadowed folds */
+  --color-cs-orchid:      #d19ed5;  /* orchid pink — brand accent (hourglass) */
+  --color-cs-cobalt:      #538ef2;  /* cobalt — brand primary / frame edges */
+  --color-cs-steel:       #7a8ea8;  /* steel-lavender — secondary text */
+  --color-cs-ink:         #1a202c;  /* brand ink */
+
   /* Fonts — self-hosted; serif display + sans body */
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-sans:  "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Clock Spinning broadcast brand fonts (stage only, not the site chrome):
+     Zen Tokyo Zoo is the striped Art-Deco wordmark face; Montserrat is the body
+     voice on clockspinning.com. Krungthep (YouTube thumbnails) is Apple-only —
+     not bundled. */
+  --font-display: "Zen Tokyo Zoo", "Source Serif 4", Georgia, serif;
+  --font-brand:   "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 ```
+
+The **site chrome** (header, builder, footer) keeps the marble/parchment/maroon/gold
+identity and Source Serif/Sans. The `--color-cs-*` and `--font-display`/`--font-brand`
+tokens are the **broadcast stage** brand — the purple Clock Spinning show look that
+matches the framed title art — and are used there (title keynote), not on the site UI.
 
 ### Breakpoints (canonical — do not invent new ones without a decision)
 

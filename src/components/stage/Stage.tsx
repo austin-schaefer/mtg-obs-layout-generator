@@ -22,13 +22,14 @@ import {
   VERTICAL_MAX,
   HOST_BOXES,
   boxStyle,
+  useFitFontSize,
   type Box,
 } from "../../lib/stage.ts";
 import GridOverview from "./GridOverview.tsx";
 
 import marble from "../../../resources/marble-background.png";
 import frame from "../../../resources/host-frames-card-discussion.png";
-import titleBg from "../../../resources/title_background.png";
+import titleFrameBg from "../../../resources/title_background_w_frame.png";
 
 const fullStage: Record<string, string> = {
   position: "absolute",
@@ -82,56 +83,60 @@ function RegionImage(props: {
   );
 }
 
+/**
+ * The open band on the framed title background — the strip between the baked-in
+ * "CLOCK SPINNING" wordmark (above) and the two host-cam boxes (below), clear of
+ * the hourglass on the left. The episode title sits here so a title reads as the
+ * same broadcast surface as the show: wordmark = the brand, this = the episode.
+ * Measured against `title_background_w_frame.png` (2560×1440).
+ */
+const TITLE_BAND: Box = { x: 810, y: 660, w: 1690, h: 190 };
+
+/**
+ * Title keynote. The base is the fully-framed Clock Spinning background — it
+ * carries the show wordmark and the host-frame chrome, so the title wears the
+ * same broadcast frame the card slides do (issue #25). The episode title is set
+ * in the brand display face (Zen Tokyo Zoo) in the show's orchid accent, glowing
+ * to stay legible over the busy indigo. An empty title leaves the clean branded
+ * standby — no floating plate, no rounded slideware.
+ */
 function TitleSlide({ title }: { title: string }) {
+  const text = title.trim();
+  // Auto-fit into the open band so short titles stand large and long ones shrink
+  // to wrap cleanly — never overrunning the wordmark above or the host boxes below.
+  const { ref, size } = useFitFontSize(text, TITLE_BAND, 104, 40);
   return (
     <>
-      <img src={titleBg.src} alt="" style={fullStage} />
-      <div
-        style={{
-          ...fullStage,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0 200px",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Parchment plate keeps the title legible over any background and reads
-            as an intentional broadcast title card (marble + maroon + gold). */}
+      <img src={titleFrameBg.src} alt="" style={fullStage} />
+      {text && (
         <div
           style={{
-            maxWidth: "1960px",
-            padding: "96px 140px",
-            background: "linear-gradient(180deg, #efece3, #dcd7c7)",
-            border: "6px solid #b8893a",
-            borderRadius: "28px",
-            boxShadow: "0 40px 110px rgba(0,0,0,0.55)",
-            textAlign: "center",
+            ...boxStyle(TITLE_BAND),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <div
-            style={{
-              width: "180px",
-              height: "5px",
-              margin: "0 auto 48px",
-              background: "#b8893a",
-              borderRadius: "3px",
-            }}
-          />
           <h1
+            ref={ref}
             style={{
               margin: "0",
-              fontFamily: 'var(--font-serif, "Source Serif 4", Georgia, serif)',
-              fontWeight: "700",
-              fontSize: "150px",
-              lineHeight: "1.08",
-              color: "#7a1f1a",
+              maxWidth: "100%",
+              textAlign: "center",
+              fontFamily:
+                'var(--font-display, "Zen Tokyo Zoo", Georgia, serif)',
+              fontWeight: "400",
+              fontSize: `${size}px`,
+              lineHeight: "1.06",
+              color: "var(--color-cs-orchid, #d19ed5)",
+              textShadow:
+                "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
             }}
           >
-            {title}
+            {text}
           </h1>
         </div>
-      </div>
+      )}
     </>
   );
 }
