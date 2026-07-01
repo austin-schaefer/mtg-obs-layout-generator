@@ -18,7 +18,7 @@ pipeline (see the epic, issue #19). Static build, deployed on Netlify.
 layouts/
   BaseLayout.astro    Document shell: <head>, fonts, global.css, body slot
 components/
-  SiteHeader.astro    Wordmark + tagline + gold accent rule
+  SiteHeader.astro    Wordmark + tagline
   SiteFooter.astro    Attribution + source link
   Builder.tsx         Creation surface (#12): mode picker, per-mode inputs,
                       generate, results strip, stage preview, presenter handoff,

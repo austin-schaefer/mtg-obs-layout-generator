@@ -238,7 +238,7 @@ export default function Builder() {
       </section>
 
       {/* ── Results: preview + cards + edit shell ───────────────────────── */}
-      {recipe ? (
+      {recipe && (
         <div class="mt-6 grid grid-cols-1 gap-6 desktop:grid-cols-[1fr_320px]">
           {/* Preview + handoff */}
           <section aria-label="Layout preview">
@@ -388,10 +388,6 @@ export default function Builder() {
             </fieldset>
           </aside>
         </div>
-      ) : (
-        <p class="mt-6 rounded-lg border border-dashed border-rule bg-paper/40 p-6 text-center text-[15px] text-ink-muted">
-          Pick a source above and generate a layout to preview it here.
-        </p>
       )}
     </div>
   );
