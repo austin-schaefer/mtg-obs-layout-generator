@@ -4,6 +4,20 @@
  * the fit-to-viewport scale. Coordinates come from `lib/stage.ts` (the web mirror
  * of the pipeline's `ImageConfig`).
  *
+ * All five background PNGs are mounted permanently, in a fixed DOM order, for the
+ * lifetime of the presenter — a slide change only toggles each `<Backdrop>`'s
+ * `visibility`, never mounts/unmounts an `<img>`. These backgrounds are ~5 MB
+ * 2560×1440 PNGs; remounting one forces the browser to re-decode it from scratch
+ * on every kind change (keynote → text → card → grid), which is a visible
+ * flash/reload even when the bytes are already HTTP-cached. Keeping every
+ * backdrop mounted and toggling visibility instead means the decode happens once,
+ * up front, and slide changes are instant.
+ *
+ * Because every backdrop is an absolutely-positioned sibling, DOM order *is*
+ * paint order — no z-index needed. The host frame (which must paint above the
+ * card/art content) is deliberately ordered after that content, not with the
+ * other backdrops.
+ *
  * Layer order matches the pipeline: marble base → card/art image → host frame on
  * top (the frame's transparency lets the card show through). No transparency
  * holes — this is the live surface, not a PNG for OBS to key.
@@ -31,6 +45,18 @@ import marble from "../../../resources/marble-background.png";
 import frame from "../../../resources/host-frames-card-discussion.png";
 import titleFrameBg from "../../../resources/title_background_w_frame.png";
 import titleHostsBg from "../../../resources/title_background_w_hosts.png";
+import titleBg from "../../../resources/title_background.png";
+
+/** Every backdrop the stage can show — preloaded/decoded up front (see
+ *  `usePreloadImages` in `lib/stage.ts`) so the always-mounted `<Backdrop>`s
+ *  below never show a placeholder while their decode completes. */
+export const STAGE_BACKGROUNDS: string[] = [
+  marble.src,
+  frame.src,
+  titleFrameBg.src,
+  titleHostsBg.src,
+  titleBg.src,
+];
 
 const fullStage: Record<string, string> = {
   position: "absolute",
@@ -39,6 +65,22 @@ const fullStage: Record<string, string> = {
   width: `${STAGE_WIDTH}px`,
   height: `${STAGE_HEIGHT}px`,
 };
+
+/**
+ * A full-stage background image that stays mounted permanently — only its
+ * `visibility` toggles as the current slide's kind changes. See the file header:
+ * this is what keeps a slide change from re-decoding a ~5 MB PNG. `visibility`
+ * (not `display: none`) so the image never leaves layout/decode state.
+ */
+function Backdrop({ src, visible }: { src: string; visible: boolean }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      style={{ ...fullStage, visibility: visible ? "visible" : "hidden" }}
+    />
+  );
+}
 
 /**
  * Only ever wrap at spaces. The browser also breaks after a hyphen and around en/em
@@ -180,80 +222,58 @@ function CardCaption({ text }: { text: string }) {
 }
 
 /**
- * Keynote — the branded show title card: the fully-framed Clock Spinning
- * background (wordmark + host-frame chrome), nothing overlaid. This is the
- * "name of the podcast" slide (issue #25).
- */
-function KeynoteSlide() {
-  return <img src={titleFrameBg.src} alt="" style={fullStage} />;
-}
-
-/**
- * Text slide — arbitrary text on the broadcast surface, wearing the host-frame
- * chrome but *not* the wordmark (`title_background_w_hosts.png`, derived from the
- * keynote art), so it reads as part of the show without competing with the
- * wordmark. The text is centered in the open region above the host boxes, set in
+ * Text slide's on-stage title text — the open region above the host boxes, set in
  * the brand body face (Montserrat) in the show's orchid accent, glowing to stay
  * legible over the busy indigo. Auto-fit so short lines stand large and long ones
- * shrink to wrap — never overrunning the host boxes below. Empty text leaves the
- * clean host-frame background.
+ * shrink to wrap — never overrunning the host boxes below. Empty text renders
+ * nothing (leaving the clean host-frame backdrop visible on its own).
  */
-function TitleSlide({ title }: { title: string }) {
+function TitleText({ title }: { title: string }) {
   const text = keepBreaksAtSpaces(title.trim());
   const { ref, size } = useFitFontSize(text, TEXT_REGION, 200, 48);
+  if (!text) return null;
   return (
-    <>
-      <img src={titleHostsBg.src} alt="" style={fullStage} />
-      {text && (
-        <div
-          style={{
-            ...boxStyle(TEXT_REGION),
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <h1
-            ref={ref}
-            style={{
-              margin: "0",
-              maxWidth: "100%",
-              textAlign: "center",
-              fontFamily:
-                'var(--font-brand, "Montserrat", system-ui, sans-serif)',
-              fontWeight: "600",
-              fontSize: `${size}px`,
-              lineHeight: "1.08",
-              color: "var(--color-cs-orchid, #d19ed5)",
-              textShadow:
-                "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
-            }}
-          >
-            {text}
-          </h1>
-        </div>
-      )}
-    </>
+    <div
+      style={{
+        ...boxStyle(TEXT_REGION),
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <h1
+        ref={ref}
+        style={{
+          margin: "0",
+          maxWidth: "100%",
+          textAlign: "center",
+          fontFamily: 'var(--font-brand, "Montserrat", system-ui, sans-serif)',
+          fontWeight: "600",
+          fontSize: `${size}px`,
+          lineHeight: "1.08",
+          color: "var(--color-cs-orchid, #d19ed5)",
+          textShadow:
+            "0 0 28px rgba(209,158,213,0.55), 0 6px 26px rgba(0,0,0,0.75)",
+        }}
+      >
+        {text}
+      </h1>
+    </div>
   );
 }
 
-export default function Stage({ slide }: { slide: Slide }) {
-  if (slide.kind === "keynote") {
-    return <KeynoteSlide />;
-  }
+type CardSlide = Extract<Slide, { kind: "card" }>;
 
-  if (slide.kind === "title") {
-    return <TitleSlide title={slide.title} />;
-  }
-
-  if (slide.kind === "grid") {
-    return <GridOverview cards={slide.cards} arrangement={slide.arrangement} />;
-  }
-
-  const { card, showCard, showArt, text } = slide;
+/**
+ * Card slide's dynamic content — full card, art, and the host-box white backing.
+ * Everything the pipeline draws *between* the marble base and the frame overlay
+ * (both of which are now permanent backdrops; see the file header). Narrowed to
+ * the card-slide shape so `slide.card` etc. are safe to access here.
+ */
+function CardContent({ slide }: { slide: CardSlide }) {
+  const { card, showCard, showArt } = slide;
   return (
     <>
-      <img src={marble.src} alt="" style={fullStage} />
       {showCard && (
         <RegionImage
           src={card.cardImage}
@@ -277,9 +297,33 @@ export default function Stage({ slide }: { slide: Slide }) {
       {HOST_BOXES.map((box, i) => (
         <div key={i} style={{ ...boxStyle(box), background: "#ffffff" }} />
       ))}
-      <img src={frame.src} alt="" style={fullStage} />
+    </>
+  );
+}
+
+export default function Stage({ slide }: { slide: Slide }) {
+  const kind = slide.kind;
+  return (
+    <>
+      {/* All five backdrops stay mounted for the presenter's lifetime; only
+          `visible` changes. DOM order is paint order (no z-index). */}
+      <Backdrop src={titleFrameBg.src} visible={kind === "keynote"} />
+      <Backdrop src={titleHostsBg.src} visible={kind === "title"} />
+      <Backdrop src={titleBg.src} visible={kind === "grid"} />
+      <Backdrop src={marble.src} visible={kind === "card"} />
+
+      {kind === "title" && <TitleText title={slide.title} />}
+      {kind === "grid" && (
+        <GridOverview cards={slide.cards} arrangement={slide.arrangement} />
+      )}
+      {kind === "card" && <CardContent slide={slide} />}
+
+      {/* Host frame paints above card/art content — must come after it in DOM
+          order — but is still a permanent backdrop, only its visibility toggles. */}
+      <Backdrop src={frame.src} visible={kind === "card"} />
+
       {/* Caption sits on top of the frame — a broadcast lower-third between cams. */}
-      {text && <CardCaption text={text} />}
+      {kind === "card" && slide.text && <CardCaption text={slide.text} />}
     </>
   );
 }

@@ -29,7 +29,7 @@ import {
 import { encodeRecipe } from "../lib/permalink.ts";
 import { usePreloadImages } from "../lib/stage.ts";
 import StageFrame from "./stage/StageFrame.tsx";
-import Stage from "./stage/Stage.tsx";
+import Stage, { STAGE_BACKGROUNDS } from "./stage/Stage.tsx";
 
 interface Props {
   recipe: LayoutRecipe;
@@ -49,13 +49,15 @@ const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp", "Backspace"]);
 export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Props) {
   const slides = buildSlides(recipe, byId);
 
-  // Preload the whole deck (both faces) so no slide loads mid-presentation.
-  usePreloadImages(
-    cardRefs(recipe).flatMap((ref) => {
+  // Preload the whole deck (both faces) plus every stage backdrop, so nothing
+  // loads — or, for the always-mounted backdrops, re-decodes — mid-presentation.
+  usePreloadImages([
+    ...STAGE_BACKGROUNDS,
+    ...cardRefs(recipe).flatMap((ref) => {
       const c = byId.get(cardKey(ref));
       return c ? [c.cardImage, c.artImage] : [];
     }),
-  );
+  ]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(() =>

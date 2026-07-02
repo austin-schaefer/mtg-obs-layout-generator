@@ -76,15 +76,23 @@ components/
   stage/
     StageFrame.tsx    Fits the 2560×1440 canvas to the viewport (CSS scale)
     Stage.tsx         Renders one slide (keynote / text / card+art / grid) as
-                      canvas layers. Keynote = the framed Clock Spinning brand
-                      background (wordmark + host chrome), no text; text = arbitrary
-                      text on the host-frame background (no wordmark), auto-fit and
-                      centered on the two host frames' midpoint (they sit right of
+                      canvas layers. All five background PNGs (`STAGE_BACKGROUNDS`)
+                      stay mounted for the presenter's lifetime as `<Backdrop>`s in a
+                      fixed DOM order — a slide-kind change only toggles
+                      `visibility`, never mounts/unmounts an `<img>`, so it never
+                      re-decodes a ~5 MB PNG (the old per-kind `<img>` caused a
+                      visible flash on every change even with a warm HTTP cache).
+                      Keynote = the framed Clock Spinning brand background (wordmark
+                      + host chrome), no text; text = arbitrary text on the
+                      host-frame background (no wordmark), auto-fit and centered on
+                      the two host frames' midpoint (they sit right of
                       canvas-center) in Montserrat / orchid (#25). A card slide can
                       carry an optional caption — a lower-third in Montserrat / orchid
                       set in the gutter between the host cams. All on-stage text wraps
                       only at spaces (hyphens/dashes are kept unbroken).
-    GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
+    GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide);
+                      the title background it sits over is one of Stage.tsx's
+                      backdrops, not rendered here
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
                       cardRefs() / cardMapFrom() / buildSlides() resolve + render the
@@ -93,8 +101,9 @@ lib/
                       are the editor's pure recipe→recipe edits (by deck position)
   stage.ts            2560×1440 coordinate system + regions + useStageScale() +
                       useFitFontSize() (auto-fits the keynote title into its band) +
-                      usePreloadImages() (warms the deck's images so slides don't
-                      load mid-presentation)
+                      usePreloadImages() (fetches + decodes the deck's images and
+                      stage backdrops up front, so slides don't load or stutter
+                      mid-presentation)
   permalink.ts        encodeRecipe / decodeRecipe — recipe ⇄ URL-safe string
                       (lz-string compressed; see docs/permalink-scheme.md)
   mock-cards.ts       Mock catalog + demo recipe backing the default /present demo reel
