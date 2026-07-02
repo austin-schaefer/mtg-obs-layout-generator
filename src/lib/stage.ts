@@ -145,6 +145,13 @@ export function useFitFontSize(
  * without this each card/art fetches the first time you land on it). Client-only
  * (effect); data-URI placeholders are no-ops. Keyed on the joined URL list so it
  * re-runs only when the actual deck changes, not on every render.
+ *
+ * Beyond fetching the bytes, also calls `img.decode()` on each one: HTTP cache
+ * warmth alone doesn't avoid the decode cost, and decoding a multi-megabyte PNG
+ * synchronously on first paint is what causes a residual swap lag even for
+ * already-cached images. `decode()` does that work off the critical rendering
+ * path, ahead of time. Not all browsers implement it, hence the optional call;
+ * failures (e.g. a data-URI placeholder) are swallowed.
  */
 export function usePreloadImages(urls: string[]) {
   const key = urls.join("|");
@@ -152,6 +159,7 @@ export function usePreloadImages(urls: string[]) {
     const imgs = urls.map((src) => {
       const img = new Image();
       img.src = src;
+      img.decode?.().catch(() => {});
       return img;
     });
     return () => {
