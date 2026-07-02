@@ -47,6 +47,20 @@ changes there, update this table).
   delta), not at the canvas origin. Full MTG cards are already correct size and are
   placed without resizing; custom/art images get resized first.
 
+#### Card caption (optional, web stage only)
+
+A card slide can carry an optional **caption** — a broadcast lower-third rendered
+in the open gutter **between the two host-cam boxes**, below the art crop. This is
+the one rectangle that stays clear in every face mode (card / art / both), so a
+caption never lands on the card, the art, or a webcam. Region derived from
+`HOST_BOXES` (so it tracks the frame), inset 24px off each cam edge:
+**(1513, 1010, 471, 327)** on the 2560×1440 canvas. Set it in the brand body face
+**Montserrat** (`--font-brand`, 700) in **orchid** (`--color-cs-orchid`) — the same
+on-stage text color the title slide uses, so both read as one voice — with a dark
+halo so it pops against the busy purple/green marble it sits on; auto-fit 40–132px
+(`useFitFontSize`). Absent/empty text renders nothing. This is a live-surface
+feature (`CardCaption` in `Stage.tsx`), not part of the Python pipeline.
+
 ### Transparency holes (punched after frame overlay)
 
 Two rectangles cut to transparency so an underlying OBS source shows through:

@@ -11,7 +11,8 @@
  *   - **keynote** — the branded show title card (the Clock Spinning wordmark +
  *     host-frame chrome); no text of its own.
  *   - **title** — a text card: arbitrary text on the same broadcast surface.
- *   - **card**  — a resolved card identity (`set`/`collector`) + a face.
+ *   - **card**  — a resolved card identity (`set`/`collector`) + a face, plus an
+ *     optional caption rendered as a lower-third between the host cams.
  *   - **grid**  — an auto-montage of *all* card slides in the deck (kept in sync).
  *
  * Image URLs are NOT part of the recipe — only resolved card *identities* are.
@@ -48,7 +49,7 @@ export const FACE_BOTH = 2;
 export type SlideSpec =
   | { kind: "keynote" }
   | { kind: "title"; text: string }
-  | { kind: "card"; set: string; collector: string; face: number }
+  | { kind: "card"; set: string; collector: string; face: number; text?: string }
   | { kind: "grid"; arrangement: string };
 
 export interface LayoutRecipe {
@@ -96,7 +97,7 @@ export function placeholderCard(ref: CardRef): Card {
 export type Slide =
   | { kind: "keynote" }
   | { kind: "title"; title: string }
-  | { kind: "card"; card: Card; showCard: boolean; showArt: boolean }
+  | { kind: "card"; card: Card; showCard: boolean; showArt: boolean; text?: string }
   | { kind: "grid"; cards: Card[]; arrangement: string };
 
 // ── Card identity plumbing ──────────────────────────────────────────────────
@@ -148,6 +149,7 @@ export function buildSlides(
       card,
       showCard: s.face !== FACE_ART,
       showArt: s.face !== FACE_CARD,
+      ...(s.text ? { text: s.text } : {}),
     };
   });
 }
@@ -236,6 +238,23 @@ export function setSlideFace(
   const s = recipe.slides[pos];
   if (s?.kind !== "card") return recipe;
   return replaceSlide(recipe, pos, { ...s, face });
+}
+
+/**
+ * Set a card slide's caption text — `undefined` removes the caption entirely
+ * (distinct from an empty string, which the editor uses to show an empty field).
+ */
+export function setCardText(
+  recipe: LayoutRecipe,
+  pos: number,
+  text: string | undefined,
+): LayoutRecipe {
+  const s = recipe.slides[pos];
+  if (s?.kind !== "card") return recipe;
+  const next: SlideSpec = { ...s };
+  if (text === undefined) delete next.text;
+  else next.text = text;
+  return replaceSlide(recipe, pos, next);
 }
 
 /** Set a grid slide's `WxH` arrangement (blank ⇒ auto). */

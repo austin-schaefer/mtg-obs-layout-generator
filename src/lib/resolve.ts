@@ -5,6 +5,8 @@
  *   - `scry`  → a browser-side Scryfall search (#14).
  *   - `boost` → a faithful booster roll for the set code (#17), frozen to
  *     concrete card identities so the permalink reproduces the exact pack.
+ *   - `scratch` → no resolution at all; the builder seeds an empty deck
+ *     (keynote + title) directly, so this path is never called.
  *   - `custom` → not wired yet ("coming soon").
  *
  * The returned `ResolvedDeck` (cards + title, plus an optional suggested grid) is
@@ -27,7 +29,7 @@ import { rollBooster } from "./booster.ts";
  * (which source to draw from), not part of the deck itself — the deck is just an
  * ordered list of slides once seeded (`recipe.ts`).
  */
-export type Mode = "scry" | "boost" | "custom";
+export type Mode = "scry" | "boost" | "scratch" | "custom";
 
 export {
   ResolveError,
@@ -44,6 +46,10 @@ export async function resolveDeck(mode: Mode, input: string): Promise<ResolvedDe
       return searchDeck(input);
     case "boost":
       return rollBooster(input);
+    case "scratch":
+      // Scratch seeds a bare keynote + title deck in the builder without any
+      // cards, so it never reaches the resolver — guard defensively anyway.
+      throw new ResolveError("Scratch mode has no cards to resolve.");
     case "custom":
       // Custom (paired images) is intentionally not wired yet — "coming soon".
       throw new ResolveError("Custom mode is coming soon.");

@@ -42,7 +42,9 @@ const T_KEYNOTE = 3;
  * Compact slide forms, tagged by type:
  *   - title:   `[0, text]`
  *   - card:    `[1, setIdx, collector]` (face BOTH — the default, omitted) or
- *              `[1, setIdx, collector, face]` when the face isn't BOTH
+ *              `[1, setIdx, collector, face]` when the face isn't BOTH, or
+ *              `[1, setIdx, collector, face, text]` when the card carries a caption
+ *              (face is written explicitly so the caption keeps its slot)
  *   - grid:    `[2, arrangement]`
  *   - keynote: `[3]` (no payload — the branded show title card)
  */
@@ -50,6 +52,7 @@ type CompactSlide =
   | [typeof T_TITLE, string]
   | [typeof T_CARD, number, string]
   | [typeof T_CARD, number, string, number]
+  | [typeof T_CARD, number, string, number, string]
   | [typeof T_GRID, string]
   | [typeof T_KEYNOTE];
 
@@ -72,6 +75,8 @@ function toCompact(recipe: LayoutRecipe): Compact {
     if (s.kind === "title") return [T_TITLE, s.text];
     if (s.kind === "grid") return [T_GRID, s.arrangement];
     const idx = setIndex(s.set);
+    const caption = s.text?.trim();
+    if (caption) return [T_CARD, idx, s.collector, s.face, caption];
     return s.face === FACE_BOTH
       ? [T_CARD, idx, s.collector]
       : [T_CARD, idx, s.collector, s.face];
@@ -93,12 +98,13 @@ function fromCompact(c: Compact): LayoutRecipe {
         case T_GRID:
           return { kind: "grid", arrangement: s[1] };
         default: {
-          const [, setIdx, collector, face] = s;
+          const [, setIdx, collector, face, text] = s;
           return {
             kind: "card",
             set: sets[setIdx],
             collector,
             face: face ?? FACE_BOTH,
+            ...(text ? { text } : {}),
           };
         }
       }

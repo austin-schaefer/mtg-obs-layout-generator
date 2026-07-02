@@ -7,7 +7,8 @@
  * One row per slide, addressed by deck position:
  *   - keynote — the branded show title card (no text); a static label.
  *   - title   — a text slide: an inline, edit-in-place text field.
- *   - card    — thumbnail + name + a Both / Card / Art face control.
+ *   - card    — thumbnail + name + a Both / Card / Art face control, plus an
+ *               optional caption (the `+ Text` toggle opens an inline field).
  *   - grid    — a `WxH` field; auto-montages every card slide in the deck.
  *
  * Each row can be reordered (drag with an insertion-line drop indicator, or the
@@ -16,7 +17,7 @@
  * — a brand-new Card, always inserted right after the selected slide.
  */
 
-import { Fragment } from "preact";
+import { Fragment, type ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import {
   cardKey,
@@ -25,6 +26,7 @@ import {
   moveSlide,
   placeholderCard,
   removeSlide,
+  setCardText,
   setGridArrangement,
   setSlideFace,
   setTitleText,
@@ -227,61 +229,63 @@ export default function DeckEditor({
                   recipe={recipe}
                   byId={byId}
                   onChange={onChange}
+                  actions={
+                    /* Reorder / duplicate / remove — placed in each tile's header
+                       row so the tile body below can run the full width. */
+                    <span class="flex shrink-0 items-center gap-1">
+                      <span class="flex flex-col overflow-hidden rounded border border-rule leading-none">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChange(moveSlide(recipe, pos, pos - 1));
+                            onSelect(pos - 1);
+                          }}
+                          disabled={pos === 0}
+                          aria-label="Move up"
+                          class="px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChange(moveSlide(recipe, pos, pos + 1));
+                            onSelect(pos + 1);
+                          }}
+                          disabled={pos === slides.length - 1}
+                          aria-label="Move down"
+                          class="border-t border-rule px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
+                        >
+                          ▼
+                        </button>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(duplicateSlide(recipe, pos));
+                          onSelect(pos + 1);
+                        }}
+                        aria-label="Duplicate slide"
+                        title="Duplicate"
+                        class="rounded border border-rule px-1.5 text-[12px] leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
+                      >
+                        ⧉
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onChange(removeSlide(recipe, pos));
+                          onSelect(Math.max(0, pos - 1));
+                        }}
+                        aria-label="Remove slide"
+                        title="Remove"
+                        class="rounded border border-rule px-1.5 text-[13px] font-semibold leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  }
                 />
-
-                {/* Row actions — reorder / duplicate / remove. */}
-                <span class="flex shrink-0 items-center gap-1">
-                  <span class="flex flex-col overflow-hidden rounded border border-rule leading-none">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onChange(moveSlide(recipe, pos, pos - 1));
-                        onSelect(pos - 1);
-                      }}
-                      disabled={pos === 0}
-                      aria-label="Move up"
-                      class="px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onChange(moveSlide(recipe, pos, pos + 1));
-                        onSelect(pos + 1);
-                      }}
-                      disabled={pos === slides.length - 1}
-                      aria-label="Move down"
-                      class="border-t border-rule px-1 py-px text-[9px] text-ink-muted hover:bg-marble hover:text-maroon disabled:opacity-30"
-                    >
-                      ▼
-                    </button>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(duplicateSlide(recipe, pos));
-                      onSelect(pos + 1);
-                    }}
-                    aria-label="Duplicate slide"
-                    title="Duplicate"
-                    class="rounded border border-rule px-1.5 text-[12px] leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
-                  >
-                    ⧉
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(removeSlide(recipe, pos));
-                      onSelect(Math.max(0, pos - 1));
-                    }}
-                    aria-label="Remove slide"
-                    title="Remove"
-                    class="rounded border border-rule px-1.5 text-[13px] font-semibold leading-6 text-ink-soft transition-colors hover:border-maroon hover:text-maroon"
-                  >
-                    ✕
-                  </button>
-                </span>
               </li>
               {pos === slides.length - 1 && lineAt(slides.length) && <InsertLine />}
             </Fragment>
@@ -449,19 +453,22 @@ export default function DeckEditor({
   );
 }
 
-/** The type-specific middle of a deck row. */
+/** The type-specific body of a deck tile, including the row-action buttons in its
+ *  header so keynote/text/grid stay one-line and a card tile's body runs full width. */
 function SlideBody({
   slide,
   pos,
   recipe,
   byId,
   onChange,
+  actions,
 }: {
   slide: LayoutRecipe["slides"][number];
   pos: number;
   recipe: LayoutRecipe;
   byId: Map<string, Card>;
   onChange: (next: LayoutRecipe) => void;
+  actions: ComponentChildren;
 }) {
   const Badge = ({ children }: { children: string }) => (
     <span class="shrink-0 rounded bg-marble px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
@@ -473,6 +480,8 @@ function SlideBody({
     return (
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <Badge>Keynote</Badge>
+        <span class="flex-1" />
+        {actions}
       </div>
     );
   }
@@ -491,6 +500,7 @@ function SlideBody({
           class="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 font-serif text-[14px] text-ink hover:border-rule focus:border-gold focus:bg-paper focus:outline-none"
           aria-label="Slide text"
         />
+        {actions}
       </div>
     );
   }
@@ -511,14 +521,17 @@ function SlideBody({
           class="w-20 rounded border border-rule-strong bg-paper px-2 py-0.5 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
           aria-label="Grid arrangement, columns by rows"
         />
+        <span class="flex-1" />
+        {actions}
       </div>
     );
   }
 
   const card = byId.get(cardKey(slide)) ?? placeholderCard(slide);
   const face = slide.face;
-  // Full-height card thumbnail on the left; the name (aligned with the row's
-  // controls) and the face control stack to its right.
+  // Taller thumbnail on the left; a header row (name + actions) with the face
+  // control and optional caption stacked below, each filling the full tile width
+  // (the actions live in the header, so nothing reserves a column beside them).
   return (
     <div class="flex min-w-0 flex-1 items-start gap-2.5">
       <img
@@ -526,16 +539,19 @@ function SlideBody({
         alt=""
         loading="lazy"
         draggable={false}
-        class="h-14 w-auto shrink-0 rounded-sm border border-rule"
+        class="h-24 w-auto shrink-0 rounded-sm border border-rule"
       />
-      <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span class="min-w-0 truncate text-[14px] leading-tight text-ink">
-          {card.name}
-        </span>
+      <div class="flex min-w-0 flex-1 flex-col gap-2">
+        <div class="flex items-start gap-2">
+          <span class="min-w-0 flex-1 truncate pt-0.5 text-[14px] leading-tight text-ink">
+            {card.name}
+          </span>
+          {actions}
+        </div>
 
-        {/* Face — a joined segmented control, tucked beside the card. */}
+        {/* Face — a joined segmented control that fills the tile width. */}
         <div
-          class="flex overflow-hidden rounded border border-rule"
+          class="flex w-full overflow-hidden rounded border border-rule"
           role="group"
           aria-label="Card face"
         >
@@ -559,6 +575,44 @@ function SlideBody({
             );
           })}
         </div>
+
+        {/* Optional caption — a broadcast lower-third between the host cams. The
+            field spans the row to line up with the face control above it; the
+            remove ✕ tucks inside on the right. `+ Caption` opens an empty field. */}
+        {typeof slide.text === "string" ? (
+          <div class="relative">
+            <input
+              type="text"
+              value={slide.text}
+              placeholder="Caption text"
+              // Focus the field the moment it opens so a host can type straight away.
+              ref={(el) => el && slide.text === "" && el.focus()}
+              onInput={(e) =>
+                onChange(setCardText(recipe, pos, (e.target as HTMLInputElement).value))
+              }
+              class="w-full rounded border border-rule bg-paper py-0.5 pl-2 pr-7 text-[13px] text-ink placeholder:text-ink-muted focus:border-gold focus:outline-none"
+              aria-label="Card caption"
+            />
+            <button
+              type="button"
+              onClick={() => onChange(setCardText(recipe, pos, undefined))}
+              aria-label="Remove caption"
+              title="Remove caption"
+              class="absolute inset-y-0 right-0 flex items-center px-2 text-[12px] text-ink-muted transition-colors hover:text-maroon"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onChange(setCardText(recipe, pos, ""))}
+            title="Add a caption below the card, between the host cams"
+            class="self-start rounded border border-rule px-2 py-0.5 text-[12px] font-semibold text-ink-soft transition-colors hover:border-gold hover:text-maroon"
+          >
+            + Caption
+          </button>
+        )}
       </div>
     </div>
   );

@@ -22,26 +22,34 @@ layouts/
                       header in netlify.toml; robots.txt intentionally omitted).
 components/
   SiteHeader.astro    Wordmark + tagline
-  SiteFooter.astro    Attribution + source link
-  Builder.tsx         Creation surface (#12/#26): source picker, per-mode inputs,
-                      Generate (seeds the deck), big stage preview of the selected
-                      slide + stepper, the deck editor, a real <form> query field
-                      (per-mode name so the browser remembers past queries), and an
-                      in-app "Present" overlay (mounts <Presenter> fullscreen — no
-                      navigation, so editing work is never lost; Esc returns).
-                      The Scryfall field defaults to a filter prefix (oldest paper
-                      printing, release order, minus digital/un/Universes Beyond).
-                      A generated deck is bookended by the branded keynote card:
-                      keynote → title → cards → grid → keynote. Accepts optional
-                      initialRecipe / initialCatalog props so it can open straight
-                      into an existing deck (the present→edit handoff below).
-  DeckEditor.tsx      The one list that is the show (#26): a row per slide
+  Builder.tsx         Creation surface (#12/#26). Two phases: an *entry* composer
+                      (source picker + per-mode input + Generate, centered) shown
+                      only until a deck exists, then a wide *building* view — the
+                      deck tiles on the left are the editing surface, a big
+                      read-only preview on the right mirrors the selected tile and
+                      stays sticky while the deck scrolls. There is no persistent
+                      composer while building (regenerating there would blow the
+                      deck away); "← Start over" (with confirm) is the one way back.
+                      A real <form> query field (per-mode name so the browser
+                      remembers past queries) and an in-app "Present" overlay (mounts
+                      <Presenter> fullscreen — no navigation, so editing work is
+                      never lost; Esc returns). The Scryfall field defaults to a
+                      filter prefix (oldest paper printing, release order, minus
+                      digital/un/Universes Beyond). A generated deck is bookended by
+                      the branded keynote card: keynote → title → cards → grid →
+                      keynote. The "Start from scratch" source skips resolution and
+                      seeds just keynote → title. Accepts optional initialRecipe /
+                      initialCatalog props so it can open straight into an existing
+                      deck (the present→edit handoff below).
+  DeckEditor.tsx      The one list that is the show (#26): a tile per slide
                       (keynote / text / card / grid). Drag-reorder (insertion-line
                       drop indicator + ▲▼ fallback), duplicate, remove, select
                       (drives the preview); edit text in place, pick a card's face
-                      (card / art / both — a full-height thumbnail with the name and
-                      face control stacked to its right), set a grid's WxH (blank = a
-                      card-count-aware default, `autoColumns`). A sticky bottom bar
+                      (card / art / both). The row-action buttons live in each tile's
+                      header row, so a card tile's face control and optional
+                      `+ Caption` field run the full tile width beneath a tall
+                      thumbnail. Set a grid's WxH (blank = a card-count-aware
+                      default, `autoColumns`). A sticky bottom bar
                       adds a Card / Text / Keynote / Grid after the selected slide
                       (pinned so a long deck needs no scroll) — writes recipe live.
                       Adding a card is two-step when it has several printings:
@@ -69,14 +77,17 @@ components/
                       background (wordmark + host chrome), no text; text = arbitrary
                       text on the host-frame background (no wordmark), auto-fit and
                       centered on the two host frames' midpoint (they sit right of
-                      canvas-center) in Montserrat / orchid (#25)
+                      canvas-center) in Montserrat / orchid (#25). A card slide can
+                      carry an optional caption — a lower-third in Montserrat / orchid
+                      set in the gutter between the host cams. All on-stage text wraps
+                      only at spaces (hyphens/dashes are kept unbroken).
     GridOverview.tsx  Montage — the deck's cards tiled in a WxH grid (a grid slide)
 lib/
   recipe.ts           Shared deck data model: CardRef / Card / SlideSpec / LayoutRecipe;
                       cardRefs() / cardMapFrom() / buildSlides() resolve + render the
                       deck; insertSlide / moveSlide / removeSlide / duplicateSlide /
-                      setTitleText / setSlideFace / setGridArrangement are the
-                      editor's pure recipe→recipe edits (addressed by deck position)
+                      setTitleText / setSlideFace / setCardText / setGridArrangement
+                      are the editor's pure recipe→recipe edits (by deck position)
   stage.ts            2560×1440 coordinate system + regions + useStageScale() +
                       useFitFontSize() (auto-fits the keynote title into its band) +
                       usePreloadImages() (warms the deck's images so slides don't
@@ -115,7 +126,8 @@ image URLs — those are reconstructed at render time (`buildSlides` + `cardMapF
 The permalink scheme that encodes it is documented in `docs/permalink-scheme.md`.
 
 A **card** slide shows the full card (vertical region) and its art (horizontal
-region) side by side; its `face` can narrow it to card-only or art-only. Full cards
+region) side by side; its `face` can narrow it to card-only or art-only, and it can
+carry an optional caption rendered as a lower-third between the host-cam boxes. Full cards
 render at native size (never upscaled); card art is scaled to fill its region — both
 faithful to the pipeline's resize rules. The two host-cam boxes are painted plain
 white under the frame (the live surface has no transparency holes; webcams overlay

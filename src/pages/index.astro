@@ -1,16 +1,13 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SiteHeader from "../components/SiteHeader.astro";
-import SiteFooter from "../components/SiteFooter.astro";
 import Builder from "../components/Builder.tsx";
 ---
 
 <BaseLayout>
   <SiteHeader />
 
-  <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 tablet:px-6 desktop:px-8">
+  <main class="mx-auto w-full max-w-[1600px] flex-1 px-4 py-8 tablet:px-6 desktop:px-8">
     <Builder client:load />
   </main>
-
-  <SiteFooter />
 </BaseLayout>
