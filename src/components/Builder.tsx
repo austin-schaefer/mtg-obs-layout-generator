@@ -428,8 +428,8 @@ export default function Builder({
       )}
 
       {/* In-app presenter: a fullscreen overlay over the builder rather than a
-          navigation, so presenting never loses the deck you're editing. Esc (or
-          the overlay's Exit button) returns here with everything intact. */}
+          navigation, so presenting never loses the deck you're editing. Esc
+          returns here with everything intact. */}
       {presenting && recipe && (
         <div class="fixed inset-0 z-50">
           <Presenter

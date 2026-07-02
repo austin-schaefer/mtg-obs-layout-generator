@@ -1,8 +1,11 @@
 /**
- * Presenter — the show surface you screen-share. Full-bleed black stage, keyboard
- * stepping, a fullscreen toggle, and a subtle position counter. Wraps the
+ * Presenter — the show surface you screen-share. Full-bleed black stage with no
+ * overlay chrome at all — the stage is always broadcast-clean. Wraps the
  * 2560×1440 stage via <StageFrame> and steps the deck one slide at a time — title,
  * card, and grid slides all live in the same deck, so there's no separate grid mode.
+ * While mounted it locks document scroll (the builder page underneath would
+ * otherwise keep its scrollbar — visible in Safari) and, when the deck has a text
+ * slide, retitles the tab after the first one.
  *
  * Keys:  ← / → (also ↑ ↓, Space, PageUp/Down) step · F fullscreen · L copy link ·
  *        Esc steps back out (exit fullscreen → `onExit`).
@@ -10,9 +13,9 @@
  *        so the show is driveable on a phone with no keyboard.
  *
  * `onExit` is set when the presenter runs as an in-app overlay (the builder's
- * "Present" button): Esc with nothing left to close, or the exit button, hands
- * control back to the host without a page navigation, so no work is lost. The
- * standalone /present page leaves it unset — there Esc just exits fullscreen.
+ * "Present" button): Esc with nothing left to close hands control back to the
+ * host without a page navigation, so no work is lost. The standalone /present
+ * page leaves it unset — there Esc just exits fullscreen.
  */
 
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -35,8 +38,8 @@ interface Props {
   /** Slide the show opens on (clamped). The builder's "Present" hands off the
    *  slide the host had selected; the standalone /present page opens at 0. */
   startIndex?: number;
-  /** When set, Esc (with nothing left to close) and the exit button call this
-   *  instead of navigating — used by the builder's in-app "Present" overlay. */
+  /** When set, Esc (with nothing left to close) calls this instead of
+   *  navigating — used by the builder's in-app "Present" overlay. */
   onExit?: () => void;
 }
 
@@ -58,18 +61,37 @@ export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Prop
   const [index, setIndex] = useState(() =>
     Math.min(Math.max(0, startIndex), Math.max(0, slides.length - 1)),
   );
-  const [hintDismissed, setHintDismissed] = useState(false);
-  const [copied, setCopied] = useState(false);
-  // Fullscreen is the broadcast/screen-share surface — hide every overlay so
-  // only the clean stage shows. Chrome returns the moment you leave fullscreen.
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
+  // The stage never scrolls, but the page underneath can (the builder, when the
+  // presenter runs as its overlay) — Safari keeps showing that scrollbar over the
+  // show. Lock document scroll for the presenter's lifetime.
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
-    onChange();
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    const html = document.documentElement;
+    const prevHtml = html.style.overflow;
+    const prevBody = document.body.style.overflow;
+    html.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+    };
   }, []);
+
+  // Name the tab after the show: the first text slide with content titles the
+  // deck. Restored on unmount so the builder gets its own title back on exit.
+  const deckTitle = (() => {
+    for (const s of slides) {
+      if (s.kind === "title" && s.title.trim()) return s.title.trim();
+    }
+    return "";
+  })();
+  useEffect(() => {
+    if (!deckTitle) return;
+    const prev = document.title;
+    document.title = deckTitle;
+    return () => {
+      document.title = prev;
+    };
+  }, [deckTitle]);
 
   const last = slides.length - 1;
   const step = useCallback(
@@ -81,15 +103,7 @@ export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Prop
     // Always the canonical presenter route — correct whether this runs as the
     // /present page or the builder's in-app overlay (pathname would be "/").
     const url = `${window.location.origin}/present?r=${encodeRecipe(recipe)}`;
-    const done = () => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    };
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).then(done).catch(() => {});
-    } else {
-      done();
-    }
+    navigator.clipboard?.writeText?.(url).catch(() => {});
   }, [recipe]);
 
   const toggleFullscreen = useCallback(() => {
@@ -123,19 +137,10 @@ export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Prop
         return;
       }
       e.preventDefault();
-      setHintDismissed(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [step, toggleFullscreen, copyPermalink, onExit]);
-
-  const overlay: Record<string, string> = {
-    position: "absolute",
-    fontFamily: 'var(--font-sans, system-ui, sans-serif)',
-    color: "rgba(255,255,255,0.82)",
-    userSelect: "none",
-    pointerEvents: "none",
-  };
 
   return (
     <div
@@ -147,99 +152,15 @@ export default function Presenter({ recipe, byId, startIndex = 0, onExit }: Prop
       </StageFrame>
 
       {/* Tap navigation — right 70% steps forward, left 30% steps back. Full-bleed
-          so the letterbox counts too; it sits above the stage but below the chrome
-          buttons (rendered after this), which keep their own taps. Drives the show
-          on a phone with no keyboard, and doubles as click-to-advance on desktop. */}
+          so the letterbox counts too. Drives the show on a phone with no keyboard,
+          and doubles as click-to-advance on desktop. */}
       <div
         onClick={(e) => {
           const { left, width } = e.currentTarget.getBoundingClientRect();
           step(e.clientX - left < width * 0.3 ? -1 : 1);
-          setHintDismissed(true);
         }}
         style={{ position: "absolute", inset: "0" }}
       />
-
-      {/* Overlay chrome — hidden in fullscreen so only the clean stage shows. */}
-      {!isFullscreen && (
-        <>
-      {/* Position counter — bottom-right, subtle, broadcast-safe. */}
-      <div
-        style={{
-          ...overlay,
-          right: "16px",
-          bottom: "12px",
-          fontSize: "14px",
-          letterSpacing: "0.04em",
-          textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-        }}
-      >
-        {index + 1} / {slides.length}
-      </div>
-
-      {/* One-time controls hint — fades after the first keypress. */}
-      {!hintDismissed && (
-        <div
-          style={{
-            ...overlay,
-            left: "16px",
-            bottom: "12px",
-            fontSize: "13px",
-            textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-          }}
-        >
-          tap or ← → step · F fullscreen · L copy link
-          {onExit ? " · Esc exit" : ""}
-        </div>
-      )}
-
-      {/* Permalink affordance — a copyable share link. The full share UI lives in
-          the builder (#12/#16); this makes the encoded recipe tangible now. */}
-      <button
-        type="button"
-        onClick={copyPermalink}
-        title="Copy a permalink that reproduces this exact layout"
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "14px",
-          padding: "5px 10px",
-          fontFamily: 'var(--font-sans, system-ui, sans-serif)',
-          fontSize: "13px",
-          color: "rgba(255,255,255,0.82)",
-          background: "rgba(0,0,0,0.45)",
-          border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: "6px",
-          cursor: "pointer",
-        }}
-      >
-        {copied ? "Link copied ✓" : "🔗 Copy link"}
-      </button>
-
-      {/* Exit — only in the in-app overlay; returns to the builder, work intact. */}
-      {onExit && (
-        <button
-          type="button"
-          onClick={onExit}
-          title="Back to the builder (Esc)"
-          style={{
-            position: "absolute",
-            top: "10px",
-            left: "14px",
-            padding: "5px 10px",
-            fontFamily: 'var(--font-sans, system-ui, sans-serif)',
-            fontSize: "13px",
-            color: "rgba(255,255,255,0.82)",
-            background: "rgba(0,0,0,0.45)",
-            border: "1px solid rgba(255,255,255,0.25)",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-        >
-          ⤺ Exit
-        </button>
-      )}
-        </>
-      )}
     </div>
   );
 }

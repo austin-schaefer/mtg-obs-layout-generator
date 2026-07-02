@@ -75,7 +75,7 @@ export default function PresenterApp() {
   if (editing) {
     // The presenter shell is a fixed full-bleed stage; the builder is a tall,
     // scrolling surface. Give it its own scrollable, marble-backed page container
-    // (matching the homepage `main`), above the shell's "← back" link.
+    // (matching the homepage `main`).
     return (
       <div class="fixed inset-0 z-20 overflow-y-auto bg-marble">
         <main class="mx-auto w-full max-w-6xl px-4 py-10 tablet:px-6 desktop:px-8">

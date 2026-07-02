@@ -57,13 +57,16 @@ components/
                       set + collector #) that lands on the slide (#31); a
                       single-printing card adds in one step.
   Presenter.tsx       Show surface: keyboard nav (← → step · F fullscreen ·
-                      L copy permalink), counter. Tap/click also steps — right 70%
+                      L copy permalink). Tap/click also steps — right 70%
                       forward, left 30% back — so a phone with no keyboard can
                       drive the show. Steps the whole deck (grid slides
                       included — no separate grid mode). Opens on `startIndex` (the
                       builder hands off the selected slide; /present opens at 0). Esc
                       steps back out (fullscreen → onExit); onExit set only for the
-                      builder overlay. In fullscreen all overlay chrome is hidden.
+                      builder overlay. No overlay chrome at all — the stage is
+                      always broadcast-clean. Locks document scroll while mounted
+                      (kills the underlying page's Safari scrollbar) and retitles
+                      the tab after the deck's first non-empty text slide.
   PresenterApp.tsx    Client entry — mock demo reel by default; a ?r= permalink
                       decodes the deck and re-hydrates its card identities into
                       real artwork via Scryfall (loading / error states). Esc hands
